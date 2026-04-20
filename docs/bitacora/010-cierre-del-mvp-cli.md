@@ -57,6 +57,18 @@ Despues escribi un test para un directorio sin build file. El RED tambien fue ut
 
 La implementacion quedo acotada a `AnalyzeCommand`: generar el Markdown sigue igual, solo cambia donde se escribe y como se tratan errores esperables.
 
+## Verificacion
+
+Verifique la iteracion con:
+
+```powershell
+mvn test
+mvn -pl cli -am package
+java -jar cli\target\modern-java-upgrade-lab-cli.jar analyze --path examples\spring-boot-3-gradle-java-21 --target 25 --output target\smoke-reports\gradle-java-25.md
+```
+
+Tambien probe el caso negativo apuntando el CLI a un directorio sin build file. El resultado fue exit code `1` y un mensaje corto empezando con `Error: No Maven or Gradle build file found`.
+
 ## Como Lo Contaria En Un Blog
 
 "El cierre del MVP no fue agregar mas features modernas de Java. Fue hacer que la herramienta se pudiera usar sin que yo estuviera al lado explicando cada paso."
