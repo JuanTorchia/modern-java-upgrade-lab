@@ -40,7 +40,9 @@ This repository is in early MVP development. The first target is a CLI that can 
 - Document decisions in the bitacora.
 - Make contribution paths small and clear.
 
-## Repository Map
+## MVP Repository Areas
+
+During MVP development, the repository is organized around these current and planned areas:
 
 - `cli/` - command-line application.
 - `analyzer-core/` - analysis model, findings, and report rendering.
