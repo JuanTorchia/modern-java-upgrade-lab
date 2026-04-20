@@ -11,7 +11,7 @@
 
     <name>Modern Java Upgrade Lab</name>
     <description>Evidence-based Java LTS migration reports for teams modernizing Maven projects.</description>
-    <url>https://example.com/modern-java-upgrade-lab</url>
+    <url>https://github.com/modern-java-upgrade-lab/modern-java-upgrade-lab</url>
 
     <modules>
         <module>analyzer-core</module>
@@ -26,7 +26,7 @@
         <junit.version>5.10.3</junit.version>
         <assertj.version>3.26.3</assertj.version>
         <picocli.version>4.7.6</picocli.version>
-        <maven.model>3.9.9</maven.model>
+        <maven.model.version>3.9.9</maven.model.version>
     </properties>
 
     <dependencyManagement>
