@@ -74,6 +74,24 @@ Before opening a PR, run:
 mvn test
 ```
 
+## Source Pattern Rules
+
+For source-code findings, start with `SourcePatternScanner` only when the evidence can be detected safely with a small textual pattern.
+
+Good candidates:
+
+- one API type or factory method, such as `SimpleDateFormat`;
+- a narrow idiom, such as `Map<String, Object>`;
+- an executor factory call that can be reviewed manually.
+
+Poor candidates:
+
+- anything requiring type resolution;
+- broad architectural claims;
+- transformations that need semantic guarantees.
+
+If a rule needs AST-level context, document that need first instead of forcing it into the text scanner.
+
 ## What Not To Do Yet
 
 - Do not run OpenRewrite automatically.

@@ -36,6 +36,34 @@ Quiero que el reporte muestre una seccion `Language Modernization` con oportunid
 
 Si aparece concurrencia clasica, tambien quiero que pueda aparecer en `Concurrency`, especialmente al apuntar a Java 21 o superior.
 
+## Resultado Concreto
+
+Agregue `SourcePattern`, `SourcePatternType` y `SourcePatternScanner`.
+
+El scanner recorre archivos `.java`, ignora `target/`, ignora imports para evitar evidencia ruidosa y detecta tres patrones iniciales:
+
+- `Map<String, Object>`;
+- `SimpleDateFormat`;
+- `Executors.newFixedThreadPool` y `Executors.newCachedThreadPool`.
+
+Despues extendi `ProjectMetadata` para transportar esos patrones y agregue reglas que los convierten en findings:
+
+- `Map<String, Object>` aparece como `LANGUAGE`;
+- `SimpleDateFormat` aparece como `LANGUAGE`;
+- factories de `Executors` aparecen como `CONCURRENCY` solo para Java 21 o superior.
+
+Finalmente conecte el scanner al CLI. El ejemplo Spring Boot Java 8 ahora genera una seccion `Language Modernization` porque encuentra un controller que arma una respuesta con `Map<String, Object>`.
+
+## Detalle Del Proceso
+
+Primero escribi un test que fallaba porque no existian `SourcePatternScanner`, `SourcePattern` ni `SourcePatternType`.
+
+Al implementar el scanner, el primer intento detecto tambien `SimpleDateFormat` en el `import`. Ese fallo fue util: me obligo a distinguir evidencia accionable de ruido. Ajuste el scanner para ignorar imports.
+
+Despues escribi un test del analyzer para comprobar que los patrones se transformaran en findings. El RED fue que `ProjectMetadata` todavia no podia transportar patrones. Agregue ese campo y cree reglas especificas.
+
+Finalmente escribi un test del CLI esperando `Language Modernization`. Primero descubri que el fixture usado no tenia codigo fuente; lo cambie por el ejemplo real Spring Boot Java 8 y conecte el scanner en `AnalyzeCommand`.
+
 ## Como Lo Contaria En Un Blog
 
 "El primer salto de valor fue dejar de hablar de features en abstracto. En vez de decir que Java tiene records, empece a buscar codigo donde un record podria mejorar el modelo. La herramienta no cambia codigo: muestra evidencia para conversar mejor la migracion."
@@ -46,3 +74,5 @@ Si estos patrones resultan utiles, el siguiente paso natural es decidir entre do
 
 - agregar mas patrones simples;
 - incorporar JavaParser para detectar estructuras con mas precision.
+
+Mi inclinacion despues de esta iteracion es agregar algunos patrones simples mas antes de JavaParser, pero solo si cada uno puede explicarse con evidencia clara en el reporte.
