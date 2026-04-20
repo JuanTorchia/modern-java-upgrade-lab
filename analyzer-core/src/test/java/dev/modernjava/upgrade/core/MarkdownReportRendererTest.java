@@ -54,7 +54,7 @@ class MarkdownReportRendererTest {
     }
 
     @Test
-    void rendersEmptyStateWhenNoFindingsExist() {
+    void rendersEmptyAnalysisResultWhenNoFindingsExist() {
         var request = new AnalysisRequest(Path.of("/workspace/sample-project"), 21);
         var metadata = new ProjectMetadata("maven", "8", "2.7.18", List.of());
         var result = new AnalysisResult(metadata, 21, List.of());
