@@ -9,6 +9,7 @@ La intencion es que cada entrada pueda reutilizarse despues como base para artic
 - [001 - Idea y validacion](001-idea-y-validacion.md)
 - [002 - Diseno del MVP](002-diseno-del-mvp.md)
 - [003 - Plan de implementacion](003-plan-de-implementacion.md)
+- [004 - Scaffold del repo](004-scaffold-del-repo.md)
 
 ## Formato De Cada Entrada
 
