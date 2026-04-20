@@ -2,19 +2,19 @@ package dev.modernjava.upgrade.core;
 
 import java.util.List;
 
-public final class Java8To17Rules {
+public final class DefaultMigrationRules {
 
     private static final String MAVEN_COMPILER_PLUGIN = "org.apache.maven.plugins:maven-compiler-plugin";
 
-    private Java8To17Rules() {
+    private DefaultMigrationRules() {
     }
 
     public static List<MigrationRule> defaults() {
         return List.of(
-                Java8To17Rules::java8Baseline,
-                Java8To17Rules::springBoot2Compatibility,
-                Java8To17Rules::explicitMavenCompilerPlugin,
-                Java8To17Rules::openRewriteMigrationRecipe);
+                DefaultMigrationRules::java8Baseline,
+                DefaultMigrationRules::springBoot2Compatibility,
+                DefaultMigrationRules::explicitMavenCompilerPlugin,
+                DefaultMigrationRules::openRewriteMigrationRecipe);
     }
 
     private static List<Finding> java8Baseline(RuleContext context) {

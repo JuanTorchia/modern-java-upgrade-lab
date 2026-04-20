@@ -8,7 +8,7 @@ public final class DefaultAnalyzer implements Analyzer {
     private final RuleEngine ruleEngine;
 
     public DefaultAnalyzer(ProjectMetadata metadata) {
-        this(metadata, new RuleEngine(Java8To17Rules.defaults()));
+        this(metadata, new RuleEngine(DefaultMigrationRules.defaults()));
     }
 
     DefaultAnalyzer(ProjectMetadata metadata, RuleEngine ruleEngine) {
