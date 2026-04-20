@@ -9,7 +9,7 @@ import picocli.CommandLine.Command;
         version = "mjul 0.1.0-SNAPSHOT",
         description = "Generate evidence-based Java LTS migration reports.",
         subcommands = AnalyzeCommand.class)
-public class ModernJavaUpgradeLabApp implements Runnable {
+public final class ModernJavaUpgradeLabApp implements Runnable {
 
     public static void main(String[] args) {
         int exitCode = new CommandLine(new ModernJavaUpgradeLabApp()).execute(args);

@@ -1,6 +1,7 @@
 package dev.modernjava.upgrade.cli;
 
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -9,16 +10,16 @@ import picocli.CommandLine.Option;
         name = "analyze",
         mixinStandardHelpOptions = true,
         description = "Analyze a Java project and print a migration readiness report.")
-public class AnalyzeCommand implements Runnable {
+public final class AnalyzeCommand implements Callable<Integer> {
 
-    @Option(names = "--path", defaultValue = ".")
+    @Option(names = "--path", description = "Project path to analyze.", defaultValue = ".")
     private Path path;
 
-    @Option(names = "--target", required = true)
+    @Option(names = "--target", description = "Target Java version.", required = true)
     private int targetVersion;
 
     @Override
-    public void run() {
+    public Integer call() {
         System.out.println("# Modern Java Upgrade Report");
         System.out.println();
         System.out.println("## Project Path");
@@ -28,5 +29,6 @@ public class AnalyzeCommand implements Runnable {
         System.out.println(targetVersion);
         System.out.println();
         System.out.println("Analyzer wiring will be connected in the next task.");
+        return 0;
     }
 }
