@@ -34,7 +34,7 @@ class AnalyzeCommandTest {
         int exitCode = commandLine.execute(
                 "analyze",
                 "--path",
-                "../build-inspectors/src/test/resources/fixtures/maven-java8-springboot2",
+                "../examples/spring-boot-2-java-8",
                 "--target",
                 "17");
 
@@ -46,5 +46,7 @@ class AnalyzeCommandTest {
         assertThat(text).contains("Java 8 baseline should be migrated deliberately before adopting Java 17");
         assertThat(text).contains("Spring Boot 2.x needs compatibility validation before a Java 17 migration");
         assertThat(text).contains("OpenRewrite has a Java 17 migration recipe");
+        assertThat(text).contains("## Language Modernization");
+        assertThat(text).contains("Map-based response can be reviewed as an explicit DTO or record");
     }
 }

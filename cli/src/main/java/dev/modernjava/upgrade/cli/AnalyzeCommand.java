@@ -5,6 +5,7 @@ import dev.modernjava.upgrade.core.AnalysisRequest;
 import dev.modernjava.upgrade.core.DefaultAnalyzer;
 import dev.modernjava.upgrade.core.MarkdownReportRenderer;
 import dev.modernjava.upgrade.core.ProjectMetadata;
+import dev.modernjava.upgrade.core.SourcePatternScanner;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
@@ -31,7 +32,15 @@ public final class AnalyzeCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         var request = new AnalysisRequest(path, targetVersion);
-        ProjectMetadata metadata = new MavenProjectInspector().inspect(path);
+        ProjectMetadata inspectedMetadata = new MavenProjectInspector().inspect(path);
+        var sourcePatterns = new SourcePatternScanner().scan(path);
+        var metadata = new ProjectMetadata(
+                inspectedMetadata.buildTool(),
+                inspectedMetadata.declaredJavaVersion(),
+                inspectedMetadata.springBootVersion(),
+                inspectedMetadata.dependencies(),
+                inspectedMetadata.buildPlugins(),
+                sourcePatterns);
         var result = new DefaultAnalyzer(metadata).analyze(request);
         var markdown = new MarkdownReportRenderer().render(request, result);
         spec.commandLine().getOut().println(markdown);

@@ -25,6 +25,14 @@ Project path: `examples/spring-boot-2-java-8`
 - Evidence: Detected Spring Boot 2.7.18
 - Recommendation: Validate the project on Spring Boot 2.7.x before the Java 21 rollout. Treat Spring Boot 3 as a separate migration because it also introduces Jakarta namespace changes.
 
+## Language Modernization
+
+### [INFO] Map-based response can be reviewed as an explicit DTO or record
+
+- Area: Language modernization
+- Evidence: src\main\java\dev\modernjava\upgrade\example\LegacyGreetingController.java:13 contains `Map<String, Object> response = new LinkedHashMap<String, Object>();`
+- Recommendation: Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.
+
 ## Automation Suggestions
 
 ### [INFO] OpenRewrite has a Java 21 migration recipe
