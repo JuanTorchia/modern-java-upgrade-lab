@@ -1,6 +1,7 @@
 package dev.modernjava.upgrade.core;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,22 +47,21 @@ public class MarkdownReportRenderer {
     }
 
     private static void appendFinding(StringBuilder report, Finding finding) {
-            report.append("### [")
-                    .append(displayValue(finding.severity().name()))
-                    .append("] ")
-                    .append(displayValue(finding.title()))
-                    .append("\n\n");
-            report.append("- Area: ").append(displayValue(finding.area())).append('\n');
-            report.append("- Evidence: ").append(displayText(finding.evidence())).append('\n');
-            report.append("- Recommendation: ").append(displayText(finding.recommendation())).append('\n');
-            var recipe = finding.openRewriteRecipe();
-            if (recipe != null && !recipe.isBlank()) {
-                report.append("- OpenRewrite recipe: `").append(displayText(recipe)).append("`\n");
-                report.append("- OpenRewrite command: `")
-                        .append(openRewriteMavenCommand(recipe))
-                        .append("`\n");
-            }
-            report.append('\n');
+        report.append("### [")
+                .append(displayValue(finding.severity().name()))
+                .append("] ")
+                .append(displayValue(finding.title()))
+                .append("\n\n");
+        report.append("- Area: ").append(displayValue(finding.area())).append('\n');
+        report.append("- Evidence: ").append(displayText(finding.evidence())).append('\n');
+        report.append("- Recommendation: ").append(displayText(finding.recommendation())).append('\n');
+        var recipe = finding.openRewriteRecipe();
+        if (recipe != null && !recipe.isBlank()) {
+            report.append("- OpenRewrite recipe: `").append(displayText(recipe)).append("`\n");
+            report.append("- OpenRewrite command: `")
+                    .append(openRewriteMavenCommand(recipe))
+                    .append("`\n");
+        }
     }
 
     private static String displayBuildTool(String value) {
@@ -90,7 +90,7 @@ public class MarkdownReportRenderer {
     private static Map<FindingCategory, List<Finding>> groupFindingsByCategory(List<Finding> findings) {
         var grouped = new EnumMap<FindingCategory, List<Finding>>(FindingCategory.class);
         for (Finding finding : findings) {
-            grouped.computeIfAbsent(finding.category(), ignored -> new java.util.ArrayList<>()).add(finding);
+            grouped.computeIfAbsent(finding.category(), ignored -> new ArrayList<>()).add(finding);
         }
         return grouped;
     }
