@@ -3,8 +3,8 @@ package dev.modernjava.upgrade.cli;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 
@@ -39,6 +39,8 @@ class AnalyzeCommandTest {
             assertThat(exitCode).isZero();
             String text = output.toString(StandardCharsets.UTF_8);
             assertThat(text).contains("# Modern Java Upgrade Report");
+            assertThat(text).containsPattern("(?m)^Project path: `.+`$");
+            assertThat(text).contains("Target Java version: 21");
             assertThat(text).contains("Analyzer wiring will be connected in the next task.");
         } finally {
             System.setOut(originalOut);

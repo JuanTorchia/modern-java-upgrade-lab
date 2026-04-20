@@ -22,11 +22,8 @@ public final class AnalyzeCommand implements Callable<Integer> {
     public Integer call() {
         System.out.println("# Modern Java Upgrade Report");
         System.out.println();
-        System.out.println("## Project Path");
-        System.out.println("`" + path + "`");
-        System.out.println();
-        System.out.println("## Target Java Version");
-        System.out.println(targetVersion);
+        System.out.println("Project path: `" + path.toAbsolutePath().normalize() + "`");
+        System.out.println("Target Java version: " + targetVersion);
         System.out.println();
         System.out.println("Analyzer wiring will be connected in the next task.");
         return 0;
