@@ -18,6 +18,7 @@ class MavenProjectInspectorTest {
         assertThat(metadata.declaredJavaVersion()).isEqualTo("8");
         assertThat(metadata.springBootVersion()).isEqualTo("2.7.18");
         assertThat(metadata.dependencies()).contains("org.springframework.boot:spring-boot-starter-web");
+        assertThat(metadata.buildPlugins()).contains("org.apache.maven.plugins:maven-compiler-plugin");
     }
 
     @Test

@@ -23,11 +23,12 @@ class OpenRewriteSuggestionServiceTest {
                 "org.openrewrite.java.migrate.UpgradeToJava21");
 
         var command = suggestion.mavenCommand();
+        var expectedCommand = "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run "
+                + "-Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:RELEASE "
+                + "-Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava21 "
+                + "-Drewrite.exportDatatables=true";
 
-        assertThat(command)
-                .contains("org.openrewrite.maven:rewrite-maven-plugin:run")
-                .contains("org.openrewrite.java.migrate.UpgradeToJava21")
-                .contains("-Drewrite.exportDatatables=true");
+        assertThat(command).isEqualTo(expectedCommand);
     }
 
     @Test

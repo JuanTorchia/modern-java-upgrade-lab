@@ -25,6 +25,10 @@ class MarkdownReportRendererTest {
                 "Upgrade to a Spring Boot 3.x baseline before adopting Java 21.",
                 "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2"));
         var result = new AnalysisResult(metadata, 21, findings);
+        var openRewriteCommand = "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run "
+                + "-Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:RELEASE "
+                + "-Drewrite.activeRecipes=org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2 "
+                + "-Drewrite.exportDatatables=true";
 
         var expectedReport = """
                 # Modern Java Upgrade Report
@@ -46,7 +50,8 @@ class MarkdownReportRendererTest {
                 - Evidence: Spring Boot 2.7.18 is still on the older line.
                 - Recommendation: Upgrade to a Spring Boot 3.x baseline before adopting Java 21.
                 - OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`
-                """.formatted(request.projectPath().toAbsolutePath().normalize()).stripTrailing();
+                - OpenRewrite command: `%s`
+                """.formatted(request.projectPath().toAbsolutePath().normalize(), openRewriteCommand).stripTrailing();
 
         var report = new MarkdownReportRenderer().render(request, result);
 
@@ -117,6 +122,7 @@ class MarkdownReportRendererTest {
         assertThat(report).contains("- Evidence: Line one Line two");
         assertThat(report).contains("- Recommendation: Use OpenRewrite");
         assertThat(report).contains("- OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`");
+        assertThat(report).contains("- OpenRewrite command: `mvn -U org.openrewrite.maven:rewrite-maven-plugin:run");
         assertThat(report).doesNotContain("null");
     }
 }

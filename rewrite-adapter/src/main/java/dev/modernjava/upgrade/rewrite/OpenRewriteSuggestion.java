@@ -21,7 +21,12 @@ public class OpenRewriteSuggestion {
     }
 
     public String mavenCommand() {
-        return "mvn org.openrewrite.maven:rewrite-maven-plugin:run "
+        return mavenCommand(recipe);
+    }
+
+    public static String mavenCommand(String recipe) {
+        Objects.requireNonNull(recipe, "recipe");
+        return "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run "
                 + "-Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:RELEASE "
                 + "-Drewrite.activeRecipes=" + recipe + " "
                 + "-Drewrite.exportDatatables=true";
