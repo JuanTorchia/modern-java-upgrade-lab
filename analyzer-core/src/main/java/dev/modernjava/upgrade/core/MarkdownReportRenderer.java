@@ -12,10 +12,10 @@ public class MarkdownReportRenderer {
         report.append("Project path: ").append(request.projectPath()).append('\n');
         report.append("Target Java version: ").append(request.targetJavaVersion()).append("\n\n");
         report.append("## Summary\n\n");
-        report.append("Build tool: ").append(capitalize(metadata.buildTool())).append('\n');
-        report.append("Declared Java version: ").append(metadata.declaredJavaVersion()).append('\n');
-        report.append("Spring Boot version: ").append(metadata.springBootVersion()).append('\n');
-        report.append("Dependencies: ").append(String.join(", ", metadata.dependencies())).append("\n\n");
+        report.append("Build tool: ").append(displayBuildTool(metadata.buildTool())).append('\n');
+        report.append("Declared Java version: ").append(displayValue(metadata.declaredJavaVersion())).append('\n');
+        report.append("Spring Boot version: ").append(displayValue(metadata.springBootVersion())).append('\n');
+        report.append("Dependencies: ").append(displayDependencies(metadata.dependencies())).append("\n\n");
         report.append("## Findings\n\n");
 
         List<Finding> findings = result.findings();
@@ -25,14 +25,15 @@ public class MarkdownReportRenderer {
         }
 
         for (Finding finding : findings) {
-            report.append("### ").append(finding.title()).append("\n\n");
-            report.append("- ID: ").append(finding.id()).append('\n');
-            report.append("- Severity: ").append(finding.severity()).append('\n');
-            report.append("- Area: ").append(finding.area()).append('\n');
-            report.append("- Evidence: ").append(finding.evidence()).append('\n');
-            report.append("- Recommendation: ").append(finding.recommendation()).append('\n');
-            if (finding.openRewriteRecipe() != null && !finding.openRewriteRecipe().isBlank()) {
-                report.append("- OpenRewrite recipe: ").append(finding.openRewriteRecipe()).append('\n');
+            report.append("### ").append(displayValue(finding.title())).append("\n\n");
+            report.append("- ID: ").append(displayValue(finding.id())).append('\n');
+            report.append("- Severity: ").append(displayValue(finding.severity().name())).append('\n');
+            report.append("- Area: ").append(displayValue(finding.area())).append('\n');
+            report.append("- Evidence: ").append(displayText(finding.evidence())).append('\n');
+            report.append("- Recommendation: ").append(displayText(finding.recommendation())).append('\n');
+            var recipe = finding.openRewriteRecipe();
+            if (recipe != null && !recipe.isBlank()) {
+                report.append("- OpenRewrite recipe: `").append(displayText(recipe)).append("`\n");
             }
             report.append('\n');
         }
@@ -40,10 +41,33 @@ public class MarkdownReportRenderer {
         return report.toString().stripTrailing();
     }
 
-    private static String capitalize(String value) {
+    private static String displayBuildTool(String value) {
         if (value == null || value.isBlank()) {
-            return value;
+            return "Unknown";
         }
-        return value.substring(0, 1).toUpperCase() + value.substring(1);
+        return value.substring(0, 1).toUpperCase() + value.substring(1).toLowerCase();
+    }
+
+    private static String displayValue(String value) {
+        return value == null || value.isBlank() ? "Unknown" : sanitize(value);
+    }
+
+    private static String displayText(String value) {
+        return value == null || value.isBlank() ? "Unknown" : sanitize(value);
+    }
+
+    private static String displayDependencies(List<String> dependencies) {
+        if (dependencies == null || dependencies.isEmpty()) {
+            return "Unknown";
+        }
+        return dependencies.stream()
+                .map(MarkdownReportRenderer::sanitize)
+                .filter(value -> !value.isBlank())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("Unknown");
+    }
+
+    private static String sanitize(String value) {
+        return value.replace('\r', ' ').replace('\n', ' ').replaceAll(" +", " ").trim();
     }
 }

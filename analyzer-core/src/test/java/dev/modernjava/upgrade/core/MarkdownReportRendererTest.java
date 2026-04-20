@@ -26,14 +26,34 @@ class MarkdownReportRendererTest {
                 "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2"));
         var result = new AnalysisResult(metadata, 21, findings);
 
+        var expectedReport = """
+                # Modern Java Upgrade Report
+
+                Project path: %s
+                Target Java version: 21
+
+                ## Summary
+
+                Build tool: Maven
+                Declared Java version: 8
+                Spring Boot version: 2.7.18
+                Dependencies: org.springframework.boot:spring-boot-starter-web
+
+                ## Findings
+
+                ### Upgrade Spring Boot before moving to Java 21
+
+                - ID: spring-boot-upgrade
+                - Severity: RISK
+                - Area: Spring Boot
+                - Evidence: Spring Boot 2.7.18 is still on the older line.
+                - Recommendation: Upgrade to a Spring Boot 3.x baseline before adopting Java 21.
+                - OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`
+                """.formatted(request.projectPath()).stripTrailing();
+
         var report = new MarkdownReportRenderer().render(request, result);
 
-        assertThat(report).contains("# Modern Java Upgrade Report");
-        assertThat(report).contains("Build tool: Maven");
-        assertThat(report).contains("Declared Java version: 8");
-        assertThat(report).contains("Target Java version: 21");
-        assertThat(report).contains("Upgrade Spring Boot before moving to Java 21");
-        assertThat(report).contains("OpenRewrite recipe");
+        assertThat(report).contains(expectedReport);
     }
 
     @Test
@@ -69,5 +89,30 @@ class MarkdownReportRendererTest {
 
         assertThat(report).doesNotContain("OpenRewrite recipe: null");
         assertThat(report).doesNotContain("OpenRewrite recipe");
+    }
+
+    @Test
+    void normalizesMarkdownSensitiveTextAndMissingOptionalMetadata() {
+        var request = new AnalysisRequest(Path.of("/workspace/sample-project"), 21);
+        var metadata = new ProjectMetadata("maven", "8", null, List.of());
+        var findings = List.of(new Finding(
+                "spring-boot-upgrade",
+                FindingSeverity.RISK,
+                "Spring Boot",
+                "Upgrade\nSpring Boot #3 now",
+                "Line one\r\nLine two",
+                "Use\nOpenRewrite",
+                "  org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2  "));
+        var result = new AnalysisResult(metadata, 21, findings);
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains("Spring Boot version: Unknown");
+        assertThat(report).contains("Dependencies: Unknown");
+        assertThat(report).contains("### Upgrade Spring Boot #3 now");
+        assertThat(report).contains("- Evidence: Line one Line two");
+        assertThat(report).contains("- Recommendation: Use OpenRewrite");
+        assertThat(report).contains("- OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`");
+        assertThat(report).doesNotContain("null");
     }
 }
