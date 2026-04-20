@@ -30,6 +30,13 @@ class DefaultAnalyzerTest {
                         "maven-compiler-plugin-explicit-config",
                         "openrewrite-java-17");
         assertThat(result.findings())
+                .extracting(Finding::category)
+                .containsExactly(
+                        FindingCategory.BASELINE,
+                        FindingCategory.FRAMEWORK,
+                        FindingCategory.BUILD,
+                        FindingCategory.AUTOMATION);
+        assertThat(result.findings())
                 .extracting(Finding::title)
                 .contains(
                         "Java 8 baseline should be migrated deliberately before adopting Java 17",

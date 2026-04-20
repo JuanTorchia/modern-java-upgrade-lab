@@ -24,6 +24,7 @@ public final class DefaultMigrationRules {
 
         return List.of(new Finding(
                 "java-8-baseline-target-" + context.request().targetJavaVersion(),
+                FindingCategory.BASELINE,
                 FindingSeverity.INFO,
                 "Java baseline",
                 "Java 8 baseline should be migrated deliberately before adopting Java "
@@ -42,6 +43,7 @@ public final class DefaultMigrationRules {
 
         return List.of(new Finding(
                 "spring-boot-2-java-" + context.request().targetJavaVersion() + "-risk",
+                FindingCategory.FRAMEWORK,
                 FindingSeverity.RISK,
                 "Spring Boot compatibility",
                 "Spring Boot 2.x needs compatibility validation before a Java "
@@ -63,6 +65,7 @@ public final class DefaultMigrationRules {
 
         return List.of(new Finding(
                 "maven-compiler-plugin-explicit-config",
+                FindingCategory.BUILD,
                 FindingSeverity.INFO,
                 "Build configuration",
                 "Maven compiler configuration should be explicit for Java "
@@ -85,6 +88,7 @@ public final class DefaultMigrationRules {
 
         return List.of(new Finding(
                 "openrewrite-java-" + context.request().targetJavaVersion(),
+                FindingCategory.AUTOMATION,
                 FindingSeverity.INFO,
                 "Migration automation",
                 "OpenRewrite has a Java " + context.request().targetJavaVersion() + " migration recipe",

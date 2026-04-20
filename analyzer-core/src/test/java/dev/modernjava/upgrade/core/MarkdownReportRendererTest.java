@@ -18,6 +18,7 @@ class MarkdownReportRendererTest {
                 List.of("org.springframework.boot:spring-boot-starter-web"));
         var findings = List.of(new Finding(
                 "spring-boot-upgrade",
+                FindingCategory.FRAMEWORK,
                 FindingSeverity.RISK,
                 "Spring Boot",
                 "Upgrade Spring Boot before moving to Java 21",
@@ -79,6 +80,7 @@ class MarkdownReportRendererTest {
                 List.of("org.springframework.boot:spring-boot-starter-web"));
         var findings = List.of(new Finding(
                 "spring-boot-upgrade",
+                FindingCategory.FRAMEWORK,
                 FindingSeverity.RISK,
                 "Spring Boot",
                 "Upgrade Spring Boot before moving to Java 21",
@@ -102,6 +104,7 @@ class MarkdownReportRendererTest {
         var metadata = new ProjectMetadata("maven", "8", null, List.of());
         var findings = List.of(new Finding(
                 "spring-boot-upgrade",
+                FindingCategory.FRAMEWORK,
                 FindingSeverity.RISK,
                 "Spring Boot",
                 "Upgrade\nSpring Boot #3 now",

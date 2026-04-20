@@ -4,6 +4,7 @@ import java.util.Objects;
 
 public record Finding(
         String id,
+        FindingCategory category,
         FindingSeverity severity,
         String area,
         String title,
@@ -13,6 +14,7 @@ public record Finding(
 
     public Finding {
         id = Objects.requireNonNull(id, "id");
+        category = Objects.requireNonNull(category, "category");
         severity = Objects.requireNonNull(severity, "severity");
         area = Objects.requireNonNull(area, "area");
         title = normalizeText(Objects.requireNonNull(title, "title"));

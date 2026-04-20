@@ -13,6 +13,7 @@ class RuleEngineTest {
         var context = new RuleContext(new AnalysisRequest(java.nio.file.Path.of("."), 17), metadata);
         MigrationRule firstRule = ruleContext -> List.of(new Finding(
                 "first",
+                FindingCategory.BASELINE,
                 FindingSeverity.INFO,
                 "Test",
                 "First finding",
@@ -21,6 +22,7 @@ class RuleEngineTest {
                 null));
         MigrationRule secondRule = ruleContext -> List.of(new Finding(
                 "second",
+                FindingCategory.FRAMEWORK,
                 FindingSeverity.RISK,
                 "Test",
                 "Second finding",
