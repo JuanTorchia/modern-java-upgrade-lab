@@ -92,10 +92,29 @@ Poor candidates:
 
 If a rule needs AST-level context, document that need first instead of forcing it into the text scanner.
 
+## Build Inspector Rules
+
+Build inspectors should prefer clear, bounded evidence over pretending to resolve the full build.
+
+For Gradle, the current MVP reads visible `build.gradle` and `build.gradle.kts` content. It does not execute Gradle, resolve version catalogs, inspect `buildSrc`, or evaluate convention plugins.
+
+Good Gradle contributions:
+
+- fixtures for common `plugins`, `java`, `toolchain`, and `dependencies` patterns;
+- conservative parsing for one visible build-file idiom;
+- documentation of unsupported patterns with a reproducible fixture.
+
+Poor Gradle contributions:
+
+- executing arbitrary Gradle builds during analysis;
+- making broad claims from variables or convention plugins that were not resolved;
+- adding a parser that silently guesses complex project structure.
+
 ## What Not To Do Yet
 
 - Do not run OpenRewrite automatically.
 - Do not rewrite user code from the analyzer.
+- Do not execute Maven or Gradle builds during inspection.
 - Do not add a UI for a rule.
 - Do not add broad "modernize everything" recommendations.
 - Do not suggest language changes without clear evidence.

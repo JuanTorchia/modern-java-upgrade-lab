@@ -6,7 +6,7 @@ Modern Java Upgrade Lab is an open source CLI and educational lab for understand
 
 ## MVP Focus
 
-The first MVP focuses on Maven + Spring Boot projects and generates Markdown reports for target Java LTS versions.
+The first MVP focuses on Maven and Gradle Spring Boot projects and generates Markdown reports for target Java LTS versions.
 
 ```bash
 mjul analyze --path . --target 21
@@ -17,6 +17,7 @@ During MVP development the CLI can be packaged and executed as a runnable jar:
 ```bash
 mvn -pl cli -am package
 java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze --path examples/spring-boot-2-java-8 --target 21
+java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze --path examples/spring-boot-3-gradle-java-21 --target 25
 ```
 
 The report is meant to answer:
@@ -36,7 +37,7 @@ This project treats Java modernization as an evidence-based migration path acros
 
 ## Current Status
 
-This repository is in early MVP development. The first target is a CLI that can analyze the included Spring Boot Java 8 example and produce a readable Markdown migration report.
+This repository is in early MVP development. The CLI can analyze the included Maven and Gradle Spring Boot examples and produce readable Markdown migration reports.
 
 ## Project Principles
 
@@ -53,7 +54,7 @@ During MVP development, the repository is organized around these current and pla
 
 - `cli/` - command-line application.
 - `analyzer-core/` - analysis model, findings, and report rendering.
-- `build-inspectors/` - Maven and future Gradle project inspection.
+- `build-inspectors/` - Maven and Gradle project inspection.
 - `rewrite-adapter/` - OpenRewrite recipe suggestions.
 - `examples/` - reproducible migration examples.
 - `reports/` - sample generated reports.
@@ -66,6 +67,7 @@ Good first contributions include:
 - adding a migration rule;
 - improving a report explanation;
 - adding a fixture project;
+- adding a Gradle build fixture that documents a common real-world pattern;
 - documenting an OpenRewrite recipe;
 - testing the analyzer against a real open source project.
 
