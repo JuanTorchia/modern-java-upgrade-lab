@@ -12,6 +12,13 @@ The first MVP focuses on Maven + Spring Boot projects and generates Markdown rep
 mjul analyze --path . --target 21
 ```
 
+During MVP development the CLI can be packaged and executed as a runnable jar:
+
+```bash
+mvn -pl cli -am package
+java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze --path examples/spring-boot-2-java-8 --target 21
+```
+
 The report is meant to answer:
 
 - what Java version the project declares;
