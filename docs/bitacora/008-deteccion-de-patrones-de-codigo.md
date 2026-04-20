@@ -64,6 +64,10 @@ Despues escribi un test del analyzer para comprobar que los patrones se transfor
 
 Finalmente escribi un test del CLI esperando `Language Modernization`. Primero descubri que el fixture usado no tenia codigo fuente; lo cambie por el ejemplo real Spring Boot Java 8 y conecte el scanner en `AnalyzeCommand`.
 
+En el smoke test del jar aparecio otro aprendizaje: el mismo archivo generaba dos findings para `Map<String, Object>`, uno por la firma del metodo y otro por la variable local. Tecnicamente era correcto, pero como reporte era ruido. Ajuste el scanner para deduplicar por tipo de patron dentro de cada archivo y conservar la primera evidencia concreta.
+
+Ese detalle me dejo una regla para el proyecto: detectar mas no siempre significa ayudar mas. Para una herramienta de migracion, la senal tiene que ser accionable y el ruido tiene que mantenerse bajo.
+
 ## Como Lo Contaria En Un Blog
 
 "El primer salto de valor fue dejar de hablar de features en abstracto. En vez de decir que Java tiene records, empece a buscar codigo donde un record podria mejorar el modelo. La herramienta no cambia codigo: muestra evidencia para conversar mejor la migracion."
