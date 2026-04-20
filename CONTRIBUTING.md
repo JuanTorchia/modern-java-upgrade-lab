@@ -16,11 +16,14 @@ This project is designed for community impact. Contributions should make Java mi
 
 ## Rule Contribution Checklist
 
+See [docs/contributing-rules.md](docs/contributing-rules.md) for the full rule contribution guide.
+
 When adding a rule, include:
 
 - the migration path it applies to;
 - the evidence the analyzer should look for;
 - why it matters;
+- the finding category;
 - the severity;
 - the recommendation;
 - at least one fixture or test.

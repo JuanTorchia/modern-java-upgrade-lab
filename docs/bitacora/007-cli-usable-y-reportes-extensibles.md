@@ -53,6 +53,31 @@ Al terminar esta iteracion deberia tener:
 - documentacion para contributors;
 - tests que protejan el flujo.
 
+## Resultado Concreto
+
+Implemente la taxonomia `FindingCategory` y actualice las reglas existentes para clasificar los findings como `BASELINE`, `BUILD`, `FRAMEWORK` y `AUTOMATION`.
+
+Despues cambie el renderer Markdown para agrupar el reporte en secciones. El reporte dejo de ser una lista plana y paso a mostrar bloques como `Build & Tooling`, `Framework Compatibility`, `Automation Suggestions` y `Baseline & Planning`.
+
+Tambien configure Maven Shade en el modulo `cli`, de forma que el proyecto pueda generar un jar ejecutable:
+
+```bash
+mvn -pl cli -am package
+java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze --path examples/spring-boot-2-java-8 --target 21
+```
+
+El smoke test del jar imprimio un reporte Markdown real contra el ejemplo Spring Boot Java 8.
+
+## Detalle Del Proceso
+
+Primero escribi tests que fallaban porque no existian `FindingCategory` ni `Finding::category`. Ese fallo era el RED correcto: la API todavia no soportaba la extension que queria.
+
+Luego agregue el enum y actualice los constructors de `Finding`. Con eso, los tests de `analyzer-core` pasaron.
+
+Despues cambie los tests del renderer para esperar `Project Summary` y secciones por categoria. Volvieron a fallar porque el renderer seguia usando `Summary` y `Findings`. Ahi implemente el agrupado por categoria con orden fijo.
+
+Finalmente probe el empaquetado. Antes de configurar Shade, Maven generaba `cli-0.1.0-SNAPSHOT.jar`, pero no el jar autocontenido esperado. Despues de configurar el plugin, `modern-java-upgrade-lab-cli.jar` aparecio y pudo ejecutar el comando `analyze`.
+
 ## Como Lo Contaria En Un Blog
 
 "Antes de sumar reglas, hice una pausa incomoda: mire el proyecto como si fuera la primera persona que lo encuentra en GitHub. La conclusion fue simple: no necesitaba una UI, necesitaba poder ejecutarse facil y explicar mejor lo que ya sabia."
