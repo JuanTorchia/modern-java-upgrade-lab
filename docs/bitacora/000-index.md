@@ -12,6 +12,7 @@ La intencion es que cada entrada pueda reutilizarse despues como base para artic
 - [004 - Scaffold del repo](004-scaffold-del-repo.md)
 - [005 - Revision final del MVP](005-revision-final-del-mvp.md)
 - [006 - Primeras reglas Java 8 a 17](006-primeras-reglas-java-8-a-17.md)
+- [007 - CLI usable y reportes extensibles](007-cli-usable-y-reportes-extensibles.md)
 
 ## Formato De Cada Entrada
 
