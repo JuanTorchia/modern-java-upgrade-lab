@@ -29,31 +29,28 @@ class MarkdownReportRendererTest {
         var expectedReport = """
                 # Modern Java Upgrade Report
 
-                Project path: %s
-                Target Java version: 21
+                Project path: `%s`
 
                 ## Summary
 
-                Build tool: Maven
-                Declared Java version: 8
-                Spring Boot version: 2.7.18
-                Dependencies: org.springframework.boot:spring-boot-starter-web
+                - Build tool: Maven
+                - Declared Java version: 8
+                - Target Java version: 21
+                - Spring Boot version: 2.7.18
 
                 ## Findings
 
-                ### Upgrade Spring Boot before moving to Java 21
+                ### [RISK] Upgrade Spring Boot before moving to Java 21
 
-                - ID: spring-boot-upgrade
-                - Severity: RISK
                 - Area: Spring Boot
                 - Evidence: Spring Boot 2.7.18 is still on the older line.
                 - Recommendation: Upgrade to a Spring Boot 3.x baseline before adopting Java 21.
                 - OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`
-                """.formatted(request.projectPath()).stripTrailing();
+                """.formatted(request.projectPath().toAbsolutePath().normalize()).stripTrailing();
 
         var report = new MarkdownReportRenderer().render(request, result);
 
-        assertThat(report).contains(expectedReport);
+        assertThat(report).isEqualTo(expectedReport);
     }
 
     @Test
@@ -87,8 +84,11 @@ class MarkdownReportRendererTest {
 
         var report = new MarkdownReportRenderer().render(request, result);
 
-        assertThat(report).doesNotContain("OpenRewrite recipe: null");
-        assertThat(report).doesNotContain("OpenRewrite recipe");
+        assertThat(report).contains("Project path: `");
+        assertThat(report).contains("### [RISK] Upgrade Spring Boot before moving to Java 21");
+        assertThat(report).doesNotContain("- ID:");
+        assertThat(report).doesNotContain("- OpenRewrite recipe:");
+        assertThat(report).doesNotContain("null");
     }
 
     @Test
@@ -108,8 +108,12 @@ class MarkdownReportRendererTest {
         var report = new MarkdownReportRenderer().render(request, result);
 
         assertThat(report).contains("Spring Boot version: Unknown");
-        assertThat(report).contains("Dependencies: Unknown");
-        assertThat(report).contains("### Upgrade Spring Boot #3 now");
+        assertThat(report).contains("Project path: `");
+        assertThat(report).contains("- Build tool: Maven");
+        assertThat(report).contains("- Declared Java version: 8");
+        assertThat(report).contains("- Target Java version: 21");
+        assertThat(report).contains("- Spring Boot version: Unknown");
+        assertThat(report).contains("### [RISK] Upgrade Spring Boot #3 now");
         assertThat(report).contains("- Evidence: Line one Line two");
         assertThat(report).contains("- Recommendation: Use OpenRewrite");
         assertThat(report).contains("- OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`");
