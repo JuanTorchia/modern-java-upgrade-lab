@@ -49,4 +49,28 @@ class AnalyzeCommandTest {
         assertThat(text).contains("## Language Modernization");
         assertThat(text).contains("Map-based response can be reviewed as an explicit DTO or record");
     }
+
+    @Test
+    void analyzeCommandRendersGradleProjectReport() {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        CommandLine commandLine = new CommandLine(new ModernJavaUpgradeLabApp());
+        commandLine.setOut(new PrintWriter(output, true));
+
+        int exitCode = commandLine.execute(
+                "analyze",
+                "--path",
+                "../examples/spring-boot-3-gradle-java-21",
+                "--target",
+                "25");
+
+        assertThat(exitCode).isZero();
+        String text = output.toString(StandardCharsets.UTF_8);
+        assertThat(text).contains("# Modern Java Upgrade Report");
+        assertThat(text).contains("Build tool: Gradle");
+        assertThat(text).contains("Declared Java version: 21");
+        assertThat(text).contains("Spring Boot version: 3.3.5");
+        assertThat(text).contains("OpenRewrite has a Java 25 migration recipe");
+        assertThat(text).contains("## Language Modernization");
+        assertThat(text).contains("Map-based response can be reviewed as an explicit DTO or record");
+    }
 }

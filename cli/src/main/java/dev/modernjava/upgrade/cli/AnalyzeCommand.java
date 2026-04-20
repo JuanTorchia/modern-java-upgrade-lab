@@ -1,6 +1,6 @@
 package dev.modernjava.upgrade.cli;
 
-import dev.modernjava.upgrade.build.MavenProjectInspector;
+import dev.modernjava.upgrade.build.ProjectInspector;
 import dev.modernjava.upgrade.core.AnalysisRequest;
 import dev.modernjava.upgrade.core.DefaultAnalyzer;
 import dev.modernjava.upgrade.core.MarkdownReportRenderer;
@@ -32,7 +32,7 @@ public final class AnalyzeCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         var request = new AnalysisRequest(path, targetVersion);
-        ProjectMetadata inspectedMetadata = new MavenProjectInspector().inspect(path);
+        ProjectMetadata inspectedMetadata = new ProjectInspector().inspect(path);
         var sourcePatterns = new SourcePatternScanner().scan(path);
         var metadata = new ProjectMetadata(
                 inspectedMetadata.buildTool(),
