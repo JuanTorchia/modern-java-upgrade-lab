@@ -39,6 +39,24 @@ Quiero que el MVP pueda demostrarse con un flujo simple:
 4. mostrar el archivo Markdown resultante;
 5. explicar las limitaciones sin esconderlas.
 
+## Resultado Concreto
+
+Agregue `--output` al comando `analyze`.
+
+Ahora puedo imprimir el reporte por stdout, como antes, o guardarlo en un archivo Markdown. Si el directorio de destino no existe, el CLI lo crea.
+
+Tambien cambie el manejo de errores esperables. Si el proyecto no tiene `pom.xml`, `build.gradle` ni `build.gradle.kts`, el CLI devuelve exit code `1` y muestra un mensaje corto. Ya no imprime un stacktrace para ese caso.
+
+Finalmente agregue CI con GitHub Actions para correr `mvn test` en pull requests y pushes a `master`.
+
+## Detalle Del Proceso
+
+Primero escribi un test para `--output`. El RED fue claro: picocli rechazaba la opcion porque todavia no existia.
+
+Despues escribi un test para un directorio sin build file. El RED tambien fue util: el CLI devolvia error, pero mostraba el stacktrace completo. Eso no era una buena primera experiencia para alguien probando la herramienta.
+
+La implementacion quedo acotada a `AnalyzeCommand`: generar el Markdown sigue igual, solo cambia donde se escribe y como se tratan errores esperables.
+
 ## Como Lo Contaria En Un Blog
 
 "El cierre del MVP no fue agregar mas features modernas de Java. Fue hacer que la herramienta se pudiera usar sin que yo estuviera al lado explicando cada paso."

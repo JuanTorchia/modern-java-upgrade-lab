@@ -20,6 +20,17 @@ java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze --path examples/spr
 java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze --path examples/spring-boot-3-gradle-java-21 --target 25
 ```
 
+To save a report to a Markdown file:
+
+```bash
+java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze \
+  --path examples/spring-boot-3-gradle-java-21 \
+  --target 25 \
+  --output reports/local-gradle-java-21-to-25.md
+```
+
+If the project does not contain a supported Maven or Gradle build file, the CLI exits with code `1` and prints a short error message instead of a stacktrace.
+
 The report is meant to answer:
 
 - what Java version the project declares;
@@ -37,7 +48,9 @@ This project treats Java modernization as an evidence-based migration path acros
 
 ## Current Status
 
-This repository is in early MVP development. The CLI can analyze the included Maven and Gradle Spring Boot examples and produce readable Markdown migration reports.
+This repository is in early MVP development. The CLI can analyze the included Maven and Gradle Spring Boot examples, print readable Markdown migration reports, or write them to files with `--output`.
+
+CI runs `mvn test` on pull requests and pushes to `master`.
 
 ## Project Principles
 
