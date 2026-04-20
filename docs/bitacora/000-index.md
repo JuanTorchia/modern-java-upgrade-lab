@@ -11,6 +11,7 @@ La intencion es que cada entrada pueda reutilizarse despues como base para artic
 - [003 - Plan de implementacion](003-plan-de-implementacion.md)
 - [004 - Scaffold del repo](004-scaffold-del-repo.md)
 - [005 - Revision final del MVP](005-revision-final-del-mvp.md)
+- [006 - Primeras reglas Java 8 a 17](006-primeras-reglas-java-8-a-17.md)
 
 ## Formato De Cada Entrada
 
