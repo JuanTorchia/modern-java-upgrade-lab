@@ -2,7 +2,7 @@
 
 Thanks for helping build Modern Java Upgrade Lab.
 
-This project is designed for community impact. Contributions should make Java migration easier to understand, measure, explain, or execute.
+This project is designed for evidence-based Java migration work. Contributions should help senior engineers understand, measure, explain, or execute Java LTS migrations with less guesswork.
 
 ## Good Contribution Areas
 
@@ -30,7 +30,11 @@ When adding a rule, include:
 
 ## Writing Style
 
-Be practical and honest. Do not present modern Java features as universal upgrades. Explain when a recommendation is optional or context-dependent.
+Use English for all public repository content. Write for senior Java engineers, staff engineers, tech leads, and platform teams.
+
+Be practical and honest. Do not present modern Java features as universal upgrades. Explain when a recommendation is optional, workload-dependent, framework-dependent, or not yet appropriate for automated migration.
+
+See [docs/documentation-style.md](docs/documentation-style.md) for the repository documentation style guide.
 
 ## Development
 
@@ -40,6 +44,6 @@ The tool is built with Java 25 and Maven.
 mvn test
 ```
 
-## Bitacora
+## Engineering Log
 
-Project decisions are recorded under `docs/bitacora/`. If a contribution changes project direction, add or update a bitacora entry.
+Project decisions are recorded under `docs/bitacora/`. If a contribution changes project direction, add or update an engineering log entry.

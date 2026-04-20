@@ -1,65 +1,65 @@
-# 010 - Cierre Del MVP CLI
+# 010 - CLI MVP Closure
 
-Fecha: 2026-04-20
+Date: 2026-04-20
 
-## Objetivo Del Paso
+## Goal
 
-En este paso quiero empezar a cerrar la primera version usable de Modern Java Upgrade Lab.
+In this step I wanted to start closing the first usable version of Modern Java Upgrade Lab.
 
-Ya no se trata de sumar mas detecciones. Se trata de que una persona pueda probar la herramienta, generar un reporte y entender que paso si algo falla.
+At this point, the project did not need more detections. It needed a CLI experience that another engineer could run, evaluate, and debug without me explaining the workflow live.
 
-## Que Decidi
+## Decisions
 
-Decidi enfocar el cierre del MVP en experiencia de CLI:
+I focused the MVP closure on CLI usability:
 
-- guardar reportes con `--output`;
-- errores claros sin stacktrace para casos esperables;
-- CI basico para validar contribuciones;
-- README mas orientado a uso real.
+- write reports with `--output`;
+- return concise diagnostics without stacktraces for expected user errors;
+- add basic CI for contribution validation;
+- update the README around real usage rather than project intent only.
 
-## Que Descarte
+## Rejected Options
 
-Descarte una UI.
+I rejected adding a UI.
 
-Tambien descarte instaladores, publicacion en Maven Central y reglas nuevas. Todo eso puede venir despues, pero no bloquea una demo seria.
+I also rejected installers, Maven Central publication, and new migration rules for this iteration. Those are useful later, but they do not block a serious CLI demo.
 
-## Por Que
+## Rationale
 
-Una herramienta open source temprana necesita una primera experiencia cuidada.
+An early open source tool needs a credible first-run experience.
 
-Si el usuario corre el CLI y recibe un stacktrace por no tener `pom.xml`, la confianza cae. Si puede guardar un reporte Markdown con un comando y subirlo a una PR o compartirlo en un equipo, el proyecto empieza a ser util.
+If a user runs the CLI and gets a stacktrace because the target directory has no `pom.xml`, `build.gradle`, or `build.gradle.kts`, trust drops immediately. If the same user can write a Markdown report with one command and attach it to a pull request or migration discussion, the project becomes useful.
 
-## Resultado Esperado
+## Expected Result
 
-Quiero que el MVP pueda demostrarse con un flujo simple:
+The MVP should support a simple demonstration flow:
 
-1. empaquetar el CLI;
-2. analizar un ejemplo Maven o Gradle;
-3. guardar el reporte;
-4. mostrar el archivo Markdown resultante;
-5. explicar las limitaciones sin esconderlas.
+1. package the CLI;
+2. analyze a Maven or Gradle example;
+3. write the report to a Markdown file;
+4. inspect the generated artifact;
+5. explain limitations without hiding them.
 
-## Resultado Concreto
+## Concrete Result
 
-Agregue `--output` al comando `analyze`.
+I added `--output` to the `analyze` command.
 
-Ahora puedo imprimir el reporte por stdout, como antes, o guardarlo en un archivo Markdown. Si el directorio de destino no existe, el CLI lo crea.
+The CLI can still print to stdout, but it can now also write the rendered Markdown report to a file. If the destination directory does not exist, the CLI creates it.
 
-Tambien cambie el manejo de errores esperables. Si el proyecto no tiene `pom.xml`, `build.gradle` ni `build.gradle.kts`, el CLI devuelve exit code `1` y muestra un mensaje corto. Ya no imprime un stacktrace para ese caso.
+I also changed expected error handling. If the target project has no supported Maven or Gradle build file, the CLI returns exit code `1` and prints a short diagnostic. It no longer prints a stacktrace for that case.
 
-Finalmente agregue CI con GitHub Actions para correr `mvn test` en pull requests y pushes a `master`.
+Finally, I added GitHub Actions CI to run `mvn test` on pull requests and pushes to `master`.
 
-## Detalle Del Proceso
+## Implementation Notes
 
-Primero escribi un test para `--output`. El RED fue claro: picocli rechazaba la opcion porque todavia no existia.
+I first wrote a test for `--output`. The RED state was clear: picocli rejected the option because it did not exist yet.
 
-Despues escribi un test para un directorio sin build file. El RED tambien fue util: el CLI devolvia error, pero mostraba el stacktrace completo. Eso no era una buena primera experiencia para alguien probando la herramienta.
+Then I wrote a test for a directory without a build file. That RED state was useful too: the CLI failed, but it emitted the full stacktrace. That was not acceptable for a first-run experience.
 
-La implementacion quedo acotada a `AnalyzeCommand`: generar el Markdown sigue igual, solo cambia donde se escribe y como se tratan errores esperables.
+The implementation stayed scoped to `AnalyzeCommand`: report generation did not change, only the output destination and expected error handling changed.
 
-## Verificacion
+## Verification
 
-Verifique la iteracion con:
+I verified the iteration with:
 
 ```powershell
 mvn test
@@ -67,12 +67,12 @@ mvn -pl cli -am package
 java -jar cli\target\modern-java-upgrade-lab-cli.jar analyze --path examples\spring-boot-3-gradle-java-21 --target 25 --output target\smoke-reports\gradle-java-25.md
 ```
 
-Tambien probe el caso negativo apuntando el CLI a un directorio sin build file. El resultado fue exit code `1` y un mensaje corto empezando con `Error: No Maven or Gradle build file found`.
+I also tested the negative path by pointing the CLI at a directory without a build file. The result was exit code `1` and a concise diagnostic starting with `Error: No Maven or Gradle build file found`.
 
-## Como Lo Contaria En Un Blog
+## Content Angle
 
-"El cierre del MVP no fue agregar mas features modernas de Java. Fue hacer que la herramienta se pudiera usar sin que yo estuviera al lado explicando cada paso."
+"The MVP closure was not about adding more Java modernization checks. It was about making the CLI usable without me standing next to the user explaining every step."
 
-## Proximo Paso
+## Next Step
 
-Despues de este cierre, el proyecto puede entrar en una fase de robustez: version catalogs, multi-modulo, mas source patterns o JavaParser.
+After this closure pass, the project can move into a robustness phase: Gradle version catalogs, multi-module builds, additional source patterns, or JavaParser-backed detection.

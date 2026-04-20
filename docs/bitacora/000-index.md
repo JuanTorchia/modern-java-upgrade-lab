@@ -1,36 +1,37 @@
-# Bitacora - Modern Java Upgrade Lab
+# Engineering Log - Modern Java Upgrade Lab
 
-Esta bitacora registra paso a paso como estoy construyendo Modern Java Upgrade Lab, desde la idea inicial hasta el primer release.
+This engineering log records how Modern Java Upgrade Lab is being built from the initial idea to the first usable release.
 
-La intencion es que cada entrada pueda reutilizarse despues como base para articulos, charlas, posts, README updates o retrospectivas tecnicas. No quiero que sea solo un changelog. Quiero que capture decisiones, dudas, descartes y aprendizajes.
+The goal is not to maintain a generic changelog. Each entry captures technical decisions, rejected options, trade-offs, implementation notes, and verification evidence. The material should be reusable later for technical articles, conference talks, release notes, and architecture retrospectives.
 
-## Entradas
+## Entries
 
-- [001 - Idea y validacion](001-idea-y-validacion.md)
-- [002 - Diseno del MVP](002-diseno-del-mvp.md)
-- [003 - Plan de implementacion](003-plan-de-implementacion.md)
-- [004 - Scaffold del repo](004-scaffold-del-repo.md)
-- [005 - Revision final del MVP](005-revision-final-del-mvp.md)
-- [006 - Primeras reglas Java 8 a 17](006-primeras-reglas-java-8-a-17.md)
-- [007 - CLI usable y reportes extensibles](007-cli-usable-y-reportes-extensibles.md)
-- [008 - Deteccion de patrones de codigo](008-deteccion-de-patrones-de-codigo.md)
-- [009 - Soporte Gradle MVP](009-soporte-gradle-mvp.md)
-- [010 - Cierre del MVP CLI](010-cierre-del-mvp-cli.md)
+- [001 - Idea validation](001-idea-y-validacion.md)
+- [002 - MVP design](002-diseno-del-mvp.md)
+- [003 - Implementation plan](003-plan-de-implementacion.md)
+- [004 - Repository scaffold](004-scaffold-del-repo.md)
+- [005 - MVP final review](005-revision-final-del-mvp.md)
+- [006 - First Java 8 to 17 rules](006-primeras-reglas-java-8-a-17.md)
+- [007 - Usable CLI and extensible reports](007-cli-usable-y-reportes-extensibles.md)
+- [008 - Source pattern detection](008-deteccion-de-patrones-de-codigo.md)
+- [009 - Gradle support MVP](009-soporte-gradle-mvp.md)
+- [010 - CLI MVP closure](010-cierre-del-mvp-cli.md)
+- [011 - English technical documentation baseline](011-english-technical-documentation.md)
 
-## Formato De Cada Entrada
+## Entry Format
 
-Cada entrada intenta responder:
+Each entry should answer:
 
-- fecha;
-- objetivo del paso;
-- que decidi;
-- que descarte;
-- por que;
-- que aprendi;
-- resultado concreto;
-- como lo contaria en un blog;
-- proximo paso.
+- date;
+- goal;
+- decisions made;
+- options rejected;
+- rationale;
+- implementation notes;
+- verification evidence;
+- how this could be turned into content;
+- next step.
 
-## Nota De Estilo
+## Writing Style
 
-La bitacora esta escrita en primera persona para que pueda convertirse despues en contenido propio con la menor friccion posible.
+Write entries in English, with a technical tone aimed at senior Java engineers. Prefer precise engineering language over motivational copy. First person is acceptable when documenting decisions because the log is intended to be reusable as authored technical content.
