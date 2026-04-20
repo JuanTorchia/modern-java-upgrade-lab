@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,26 +40,28 @@ public final class SourcePatternScanner {
     private static void scanFile(Path root, Path javaFile, List<SourcePattern> patterns) throws IOException {
         var lines = Files.readAllLines(javaFile, StandardCharsets.UTF_8);
         var relativePath = root.relativize(javaFile);
+        var reportedTypes = EnumSet.noneOf(SourcePatternType.class);
         for (int index = 0; index < lines.size(); index++) {
             var line = stripLineComment(lines.get(index));
             if (line.stripLeading().startsWith("import ")) {
                 continue;
             }
-            if (line.contains("Map<String, Object>")) {
+            if (line.contains("Map<String, Object>") && reportedTypes.add(SourcePatternType.MAP_STRING_OBJECT)) {
                 patterns.add(new SourcePattern(
                         SourcePatternType.MAP_STRING_OBJECT,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
-            if (line.contains("SimpleDateFormat")) {
+            if (line.contains("SimpleDateFormat") && reportedTypes.add(SourcePatternType.SIMPLE_DATE_FORMAT)) {
                 patterns.add(new SourcePattern(
                         SourcePatternType.SIMPLE_DATE_FORMAT,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
-            if (line.contains("Executors.newFixedThreadPool") || line.contains("Executors.newCachedThreadPool")) {
+            if ((line.contains("Executors.newFixedThreadPool") || line.contains("Executors.newCachedThreadPool"))
+                    && reportedTypes.add(SourcePatternType.EXECUTOR_FACTORY)) {
                 patterns.add(new SourcePattern(
                         SourcePatternType.EXECUTOR_FACTORY,
                         relativePath,

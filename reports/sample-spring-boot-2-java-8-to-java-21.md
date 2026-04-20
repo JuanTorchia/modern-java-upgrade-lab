@@ -30,7 +30,7 @@ Project path: `examples/spring-boot-2-java-8`
 ### [INFO] Map-based response can be reviewed as an explicit DTO or record
 
 - Area: Language modernization
-- Evidence: src\main\java\dev\modernjava\upgrade\example\LegacyGreetingController.java:13 contains `Map<String, Object> response = new LinkedHashMap<String, Object>();`
+- Evidence: src\main\java\dev\modernjava\upgrade\example\LegacyGreetingController.java:11 contains `public Map<String, Object> greeting() {`
 - Recommendation: Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.
 
 ## Automation Suggestions

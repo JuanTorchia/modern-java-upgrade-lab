@@ -60,4 +60,31 @@ class SourcePatternScannerTest {
 
         assertThat(patterns).isEmpty();
     }
+
+    @Test
+    void reportsOnlyFirstOccurrenceOfSamePatternPerFile() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/LegacyController.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                import java.util.Map;
+
+                class LegacyController {
+                    Map<String, Object> response() {
+                        Map<String, Object> body = Map.of();
+                        return body;
+                    }
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(SourcePatternType.MAP_STRING_OBJECT);
+        assertThat(patterns)
+                .extracting(SourcePattern::lineNumber)
+                .containsExactly(6);
+    }
 }
