@@ -6,12 +6,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import picocli.CommandLine;
 
 class AnalyzeCommandTest {
+
+    @TempDir
+    Path tempDir;
 
     @Test
     void rootCommandHelpIncludesAnalyzeSubcommand() {
@@ -72,5 +78,52 @@ class AnalyzeCommandTest {
         assertThat(text).contains("OpenRewrite has a Java 25 migration recipe");
         assertThat(text).contains("## Language Modernization");
         assertThat(text).contains("Map-based response can be reviewed as an explicit DTO or record");
+    }
+
+    @Test
+    void analyzeCommandWritesReportToOutputFile() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        CommandLine commandLine = new CommandLine(new ModernJavaUpgradeLabApp());
+        commandLine.setOut(new PrintWriter(output, true));
+        var reportPath = tempDir.resolve("reports").resolve("java-21-report.md");
+
+        int exitCode = commandLine.execute(
+                "analyze",
+                "--path",
+                "../examples/spring-boot-3-gradle-java-21",
+                "--target",
+                "25",
+                "--output",
+                reportPath.toString());
+
+        assertThat(exitCode).isZero();
+        assertThat(output.toString(StandardCharsets.UTF_8))
+                .contains("Report written to")
+                .doesNotContain("# Modern Java Upgrade Report");
+        assertThat(Files.readString(reportPath))
+                .contains("# Modern Java Upgrade Report")
+                .contains("Build tool: Gradle")
+                .contains("Target Java version: 25");
+    }
+
+    @Test
+    void analyzeCommandReturnsFriendlyErrorForUnsupportedProject() throws Exception {
+        ByteArrayOutputStream error = new ByteArrayOutputStream();
+        CommandLine commandLine = new CommandLine(new ModernJavaUpgradeLabApp());
+        commandLine.setErr(new PrintWriter(error, true));
+        Files.writeString(tempDir.resolve("README.md"), "not a Java build");
+
+        int exitCode = commandLine.execute(
+                "analyze",
+                "--path",
+                tempDir.toString(),
+                "--target",
+                "21");
+
+        assertThat(exitCode).isEqualTo(1);
+        assertThat(error.toString(StandardCharsets.UTF_8))
+                .contains("Error: No Maven or Gradle build file found")
+                .doesNotContain("Exception")
+                .doesNotContain("at dev.");
     }
 }
