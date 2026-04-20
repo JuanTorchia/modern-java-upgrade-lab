@@ -13,6 +13,7 @@ La intencion es que cada entrada pueda reutilizarse despues como base para artic
 - [005 - Revision final del MVP](005-revision-final-del-mvp.md)
 - [006 - Primeras reglas Java 8 a 17](006-primeras-reglas-java-8-a-17.md)
 - [007 - CLI usable y reportes extensibles](007-cli-usable-y-reportes-extensibles.md)
+- [008 - Deteccion de patrones de codigo](008-deteccion-de-patrones-de-codigo.md)
 
 ## Formato De Cada Entrada
 
