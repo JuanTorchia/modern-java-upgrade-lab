@@ -1,6 +1,5 @@
 package dev.modernjava.upgrade.core;
 
-import dev.modernjava.upgrade.rewrite.OpenRewriteSuggestion;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +40,7 @@ public class MarkdownReportRenderer {
             if (recipe != null && !recipe.isBlank()) {
                 report.append("- OpenRewrite recipe: `").append(displayText(recipe)).append("`\n");
                 report.append("- OpenRewrite command: `")
-                        .append(OpenRewriteSuggestion.mavenCommand(recipe))
+                        .append(openRewriteMavenCommand(recipe))
                         .append("`\n");
             }
             report.append('\n');
@@ -71,5 +70,12 @@ public class MarkdownReportRenderer {
 
     private static String displayPath(Path path) {
         return path == null ? "Unknown" : path.toAbsolutePath().normalize().toString();
+    }
+
+    private static String openRewriteMavenCommand(String recipe) {
+        return "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run "
+                + "-Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:RELEASE "
+                + "-Drewrite.activeRecipes=" + recipe + " "
+                + "-Drewrite.exportDatatables=true";
     }
 }

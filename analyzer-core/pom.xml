@@ -15,11 +15,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>dev.modernjava.upgrade</groupId>
-            <artifactId>rewrite-adapter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>

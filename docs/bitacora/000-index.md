@@ -10,6 +10,7 @@ La intencion es que cada entrada pueda reutilizarse despues como base para artic
 - [002 - Diseno del MVP](002-diseno-del-mvp.md)
 - [003 - Plan de implementacion](003-plan-de-implementacion.md)
 - [004 - Scaffold del repo](004-scaffold-del-repo.md)
+- [005 - Revision final del MVP](005-revision-final-del-mvp.md)
 
 ## Formato De Cada Entrada
 
