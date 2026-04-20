@@ -26,7 +26,7 @@ class AnalyzeCommandTest {
     }
 
     @Test
-    void analyzeCommandRendersMavenInspectorReport() {
+    void analyzeCommandRendersJava8To17RuleReport() {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         CommandLine commandLine = new CommandLine(new ModernJavaUpgradeLabApp());
         commandLine.setOut(new PrintWriter(output, true));
@@ -36,12 +36,15 @@ class AnalyzeCommandTest {
                 "--path",
                 "../build-inspectors/src/test/resources/fixtures/maven-java8-springboot2",
                 "--target",
-                "21");
+                "17");
 
         assertThat(exitCode).isZero();
         String text = output.toString(StandardCharsets.UTF_8);
         assertThat(text).contains("# Modern Java Upgrade Report");
         assertThat(text).contains("Declared Java version: 8");
         assertThat(text).contains("Spring Boot version: 2.7.18");
+        assertThat(text).contains("Java 8 baseline should be migrated deliberately before adopting Java 17");
+        assertThat(text).contains("Spring Boot 2.x needs compatibility validation before a Java 17 migration");
+        assertThat(text).contains("OpenRewrite has a Java 17 migration recipe");
     }
 }

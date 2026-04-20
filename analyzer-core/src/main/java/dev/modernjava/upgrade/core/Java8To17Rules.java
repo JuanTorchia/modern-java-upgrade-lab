@@ -14,7 +14,7 @@ public final class Java8To17Rules {
                 Java8To17Rules::java8Baseline,
                 Java8To17Rules::springBoot2Compatibility,
                 Java8To17Rules::explicitMavenCompilerPlugin,
-                Java8To17Rules::openRewriteJava17Recipe);
+                Java8To17Rules::openRewriteMigrationRecipe);
     }
 
     private static List<Finding> java8Baseline(RuleContext context) {
@@ -23,12 +23,14 @@ public final class Java8To17Rules {
         }
 
         return List.of(new Finding(
-                "java-8-baseline-target-17",
+                "java-8-baseline-target-" + context.request().targetJavaVersion(),
                 FindingSeverity.INFO,
                 "Java baseline",
-                "Java 8 baseline should be migrated deliberately before adopting Java 17",
+                "Java 8 baseline should be migrated deliberately before adopting Java "
+                        + context.request().targetJavaVersion(),
                 "Declared Java version is " + context.metadata().declaredJavaVersion(),
-                "Establish a Java 17 build and test baseline before introducing optional language modernization.",
+                "Establish a Java " + context.request().targetJavaVersion()
+                        + " build and test baseline before introducing optional language modernization.",
                 "org.openrewrite.java.migrate.UpgradeToJava17"));
     }
 
@@ -39,10 +41,11 @@ public final class Java8To17Rules {
         }
 
         return List.of(new Finding(
-                "spring-boot-2-java-17-risk",
+                "spring-boot-2-java-" + context.request().targetJavaVersion() + "-risk",
                 FindingSeverity.RISK,
                 "Spring Boot compatibility",
-                "Spring Boot 2.x needs compatibility validation before a Java 17 migration",
+                "Spring Boot 2.x needs compatibility validation before a Java "
+                        + context.request().targetJavaVersion() + " migration",
                 "Detected Spring Boot " + springBootVersion,
                 "Validate the project on Spring Boot 2.7.x before the Java 17 rollout. Treat Spring Boot 3 as a separate migration because it also introduces Jakarta namespace changes.",
                 null));
@@ -60,25 +63,32 @@ public final class Java8To17Rules {
                 "maven-compiler-plugin-explicit-config",
                 FindingSeverity.INFO,
                 "Build configuration",
-                "Maven compiler configuration should be explicit for Java 17 migration evidence",
+                "Maven compiler configuration should be explicit for Java "
+                        + context.request().targetJavaVersion() + " migration evidence",
                 "No maven-compiler-plugin entry was detected in build plugins",
                 "Add explicit compiler plugin configuration or verify the effective POM so the report can explain the Java release used by CI.",
                 null));
     }
 
-    private static List<Finding> openRewriteJava17Recipe(RuleContext context) {
-        if (context.request().targetJavaVersion() != 17) {
+    private static List<Finding> openRewriteMigrationRecipe(RuleContext context) {
+        var recipe = switch (context.request().targetJavaVersion()) {
+            case 17 -> "org.openrewrite.java.migrate.UpgradeToJava17";
+            case 21 -> "org.openrewrite.java.migrate.UpgradeToJava21";
+            case 25 -> "org.openrewrite.java.migrate.UpgradeToJava25";
+            default -> null;
+        };
+        if (recipe == null) {
             return List.of();
         }
 
         return List.of(new Finding(
-                "openrewrite-java-17",
+                "openrewrite-java-" + context.request().targetJavaVersion(),
                 FindingSeverity.INFO,
                 "Migration automation",
-                "OpenRewrite has a Java 17 migration recipe",
-                "Target Java version is 17",
+                "OpenRewrite has a Java " + context.request().targetJavaVersion() + " migration recipe",
+                "Target Java version is " + context.request().targetJavaVersion(),
                 "Review and run the suggested OpenRewrite recipe in a branch before manual changes.",
-                "org.openrewrite.java.migrate.UpgradeToJava17"));
+                recipe));
     }
 
     private static boolean targetsJava17OrLater(RuleContext context) {

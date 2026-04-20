@@ -47,4 +47,24 @@ class DefaultAnalyzerTest {
 
         assertThat(result.findings()).isEmpty();
     }
+
+    @Test
+    void keepsJava21MigrationAutomationFinding() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "8",
+                "2.7.18",
+                List.of("org.springframework.boot:spring-boot-starter-web"),
+                List.of("org.apache.maven.plugins:maven-compiler-plugin"));
+        var request = new AnalysisRequest(Path.of("."), 21);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains("openrewrite-java-21");
+        assertThat(result.findings())
+                .extracting(Finding::title)
+                .contains("OpenRewrite has a Java 21 migration recipe");
+    }
 }
