@@ -11,14 +11,14 @@ Project path: `C:\Users\jstor\develop\modern-java-upgrade\.worktrees\mvp-scaffol
 
 ## Findings
 
-### [RISK] Spring Boot compatibility
+### [RISK] Spring Boot 2.x needs review before a Java 21 production migration
 
 - Area: Spring Boot 2.x
-- Evidence: Spring Boot 2.7.18
-- Recommendation: Spring Boot 2.x needs review before a Java 21 production migration
+- Evidence: Detected Spring Boot 2.7.18
+- Recommendation: Plan a Spring Boot 3.x migration path and validate framework compatibility before relying on Java 21.
 - OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`
 
-### [INFO] Migration automation
+### [INFO] OpenRewrite has a Java 21 migration recipe
 
 - Area: Java 21 upgrade
 - Evidence: Target Java version is 21
