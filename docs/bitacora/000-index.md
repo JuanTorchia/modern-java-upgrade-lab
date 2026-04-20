@@ -15,6 +15,7 @@ La intencion es que cada entrada pueda reutilizarse despues como base para artic
 - [007 - CLI usable y reportes extensibles](007-cli-usable-y-reportes-extensibles.md)
 - [008 - Deteccion de patrones de codigo](008-deteccion-de-patrones-de-codigo.md)
 - [009 - Soporte Gradle MVP](009-soporte-gradle-mvp.md)
+- [010 - Cierre del MVP CLI](010-cierre-del-mvp-cli.md)
 
 ## Formato De Cada Entrada
 
