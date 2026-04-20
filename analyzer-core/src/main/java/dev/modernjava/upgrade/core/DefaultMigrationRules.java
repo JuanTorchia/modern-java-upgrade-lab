@@ -1,6 +1,7 @@
 package dev.modernjava.upgrade.core;
 
 import java.util.List;
+import java.util.Locale;
 
 public final class DefaultMigrationRules {
 
@@ -14,7 +15,8 @@ public final class DefaultMigrationRules {
                 DefaultMigrationRules::java8Baseline,
                 DefaultMigrationRules::springBoot2Compatibility,
                 DefaultMigrationRules::explicitMavenCompilerPlugin,
-                DefaultMigrationRules::openRewriteMigrationRecipe);
+                DefaultMigrationRules::openRewriteMigrationRecipe,
+                DefaultMigrationRules::sourcePatternFindings);
     }
 
     private static List<Finding> java8Baseline(RuleContext context) {
@@ -95,6 +97,76 @@ public final class DefaultMigrationRules {
                 "Target Java version is " + context.request().targetJavaVersion(),
                 "Review and run the suggested OpenRewrite recipe in a branch before manual changes.",
                 recipe));
+    }
+
+    private static List<Finding> sourcePatternFindings(RuleContext context) {
+        return context.metadata().sourcePatterns().stream()
+                .filter(pattern -> shouldReportSourcePattern(context, pattern))
+                .map(pattern -> switch (pattern.type()) {
+                    case MAP_STRING_OBJECT -> mapStringObjectFinding(pattern);
+                    case SIMPLE_DATE_FORMAT -> simpleDateFormatFinding(pattern);
+                    case EXECUTOR_FACTORY -> executorFactoryFinding(pattern);
+                })
+                .toList();
+    }
+
+    private static boolean shouldReportSourcePattern(RuleContext context, SourcePattern pattern) {
+        return switch (pattern.type()) {
+            case MAP_STRING_OBJECT, SIMPLE_DATE_FORMAT -> targetsJava17OrLater(context);
+            case EXECUTOR_FACTORY -> context.request().targetJavaVersion() >= 21;
+        };
+    }
+
+    private static Finding mapStringObjectFinding(SourcePattern pattern) {
+        return new Finding(
+                sourceFindingId(pattern),
+                FindingCategory.LANGUAGE,
+                FindingSeverity.INFO,
+                "Language modernization",
+                "Map-based response can be reviewed as an explicit DTO or record",
+                sourceEvidence(pattern),
+                "Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.",
+                null);
+    }
+
+    private static Finding simpleDateFormatFinding(SourcePattern pattern) {
+        return new Finding(
+                sourceFindingId(pattern),
+                FindingCategory.LANGUAGE,
+                FindingSeverity.INFO,
+                "Date and time API",
+                "SimpleDateFormat usage can be reviewed for java.time migration",
+                sourceEvidence(pattern),
+                "Prefer java.time formatters for immutable, thread-safe date and time handling when modernizing the code path.",
+                null);
+    }
+
+    private static Finding executorFactoryFinding(SourcePattern pattern) {
+        return new Finding(
+                sourceFindingId(pattern),
+                FindingCategory.CONCURRENCY,
+                FindingSeverity.INFO,
+                "Concurrency modernization",
+                "Executor factory usage should be reviewed before adopting virtual threads",
+                sourceEvidence(pattern),
+                "Evaluate whether this blocking workload can use virtual threads after measuring behavior and preserving executor lifecycle boundaries.",
+                null);
+    }
+
+    private static String sourceEvidence(SourcePattern pattern) {
+        return pattern.relativePath() + ":" + pattern.lineNumber() + " contains `" + pattern.evidence() + "`";
+    }
+
+    private static String sourceFindingId(SourcePattern pattern) {
+        var normalizedPath = pattern.relativePath().toString()
+                .replace('\\', '-')
+                .replace('/', '-')
+                .replaceAll("[^A-Za-z0-9-]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "")
+                .toLowerCase(Locale.ROOT);
+        return "source-" + pattern.type().name().toLowerCase(Locale.ROOT).replace('_', '-')
+                + "-" + normalizedPath + "-" + pattern.lineNumber();
     }
 
     private static boolean targetsJava17OrLater(RuleContext context) {

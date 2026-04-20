@@ -8,7 +8,8 @@ public record ProjectMetadata(
         String declaredJavaVersion,
         String springBootVersion,
         List<String> dependencies,
-        List<String> buildPlugins) {
+        List<String> buildPlugins,
+        List<SourcePattern> sourcePatterns) {
 
     public ProjectMetadata {
         buildTool = Objects.requireNonNull(buildTool, "buildTool");
@@ -16,11 +17,17 @@ public record ProjectMetadata(
         springBootVersion = normalizeOptionalText(springBootVersion);
         dependencies = List.copyOf(Objects.requireNonNull(dependencies, "dependencies"));
         buildPlugins = List.copyOf(Objects.requireNonNull(buildPlugins, "buildPlugins"));
+        sourcePatterns = List.copyOf(Objects.requireNonNull(sourcePatterns, "sourcePatterns"));
+    }
+
+    public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
+            List<String> dependencies, List<String> buildPlugins) {
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of());
     }
 
     public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
             List<String> dependencies) {
-        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, List.of());
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, List.of(), List.of());
     }
 
     private static String normalizeOptionalText(String value) {

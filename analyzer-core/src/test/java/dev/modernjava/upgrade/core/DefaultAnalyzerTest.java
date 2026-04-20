@@ -74,4 +74,42 @@ class DefaultAnalyzerTest {
                 .extracting(Finding::title)
                 .contains("OpenRewrite has a Java 21 migration recipe");
     }
+
+    @Test
+    void reportsSourceModernizationFindings() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "8",
+                "2.7.18",
+                List.of(),
+                List.of(),
+                List.of(
+                        new SourcePattern(
+                                SourcePatternType.MAP_STRING_OBJECT,
+                                Path.of("src/main/java/example/LegacyController.java"),
+                                8,
+                                "Map<String, Object> response() {"),
+                        new SourcePattern(
+                                SourcePatternType.EXECUTOR_FACTORY,
+                                Path.of("src/main/java/example/LegacyWorker.java"),
+                                12,
+                                "Executors.newFixedThreadPool(4)")));
+        var request = new AnalysisRequest(Path.of("."), 21);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains(
+                        "source-map-string-object-src-main-java-example-legacycontroller-java-8",
+                        "source-executor-factory-src-main-java-example-legacyworker-java-12");
+        assertThat(result.findings())
+                .extracting(Finding::category)
+                .contains(FindingCategory.LANGUAGE, FindingCategory.CONCURRENCY);
+        assertThat(result.findings())
+                .extracting(Finding::title)
+                .contains(
+                        "Map-based response can be reviewed as an explicit DTO or record",
+                        "Executor factory usage should be reviewed before adopting virtual threads");
+    }
 }
