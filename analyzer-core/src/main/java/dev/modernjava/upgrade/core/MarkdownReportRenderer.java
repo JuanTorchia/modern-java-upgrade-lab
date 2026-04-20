@@ -31,7 +31,10 @@ public class MarkdownReportRenderer {
             report.append("- Area: ").append(finding.area()).append('\n');
             report.append("- Evidence: ").append(finding.evidence()).append('\n');
             report.append("- Recommendation: ").append(finding.recommendation()).append('\n');
-            report.append("- OpenRewrite recipe: ").append(finding.openRewriteRecipe()).append("\n\n");
+            if (finding.openRewriteRecipe() != null && !finding.openRewriteRecipe().isBlank()) {
+                report.append("- OpenRewrite recipe: ").append(finding.openRewriteRecipe()).append('\n');
+            }
+            report.append('\n');
         }
 
         return report.toString().stripTrailing();

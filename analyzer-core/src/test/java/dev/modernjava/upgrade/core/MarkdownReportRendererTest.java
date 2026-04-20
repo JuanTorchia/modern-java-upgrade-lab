@@ -46,4 +46,28 @@ class MarkdownReportRendererTest {
 
         assertThat(report).contains("No findings were generated yet.");
     }
+
+    @Test
+    void omitsOpenRewriteRecipeLineWhenRecipeIsMissing() {
+        var request = new AnalysisRequest(Path.of("/workspace/sample-project"), 21);
+        var metadata = new ProjectMetadata(
+                "maven",
+                "8",
+                "2.7.18",
+                List.of("org.springframework.boot:spring-boot-starter-web"));
+        var findings = List.of(new Finding(
+                "spring-boot-upgrade",
+                FindingSeverity.RISK,
+                "Spring Boot",
+                "Upgrade Spring Boot before moving to Java 21",
+                "Spring Boot 2.7.18 is still on the older line.",
+                "Upgrade to a Spring Boot 3.x baseline before adopting Java 21.",
+                null));
+        var result = new AnalysisResult(metadata, 21, findings);
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).doesNotContain("OpenRewrite recipe: null");
+        assertThat(report).doesNotContain("OpenRewrite recipe");
+    }
 }
