@@ -19,7 +19,7 @@ public class AnalyzeCommand implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("# Java Migration Readiness Report");
+        System.out.println("# Modern Java Upgrade Report");
         System.out.println();
         System.out.println("## Project Path");
         System.out.println("`" + path + "`");
