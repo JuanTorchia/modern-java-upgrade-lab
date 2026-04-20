@@ -36,14 +36,14 @@ class MarkdownReportRendererTest {
 
                 Project path: `%s`
 
-                ## Summary
+                ## Project Summary
 
                 - Build tool: Maven
                 - Declared Java version: 8
                 - Target Java version: 21
                 - Spring Boot version: 2.7.18
 
-                ## Findings
+                ## Framework Compatibility
 
                 ### [RISK] Upgrade Spring Boot before moving to Java 21
 
@@ -68,6 +68,8 @@ class MarkdownReportRendererTest {
         var report = new MarkdownReportRenderer().render(request, result);
 
         assertThat(report).contains("No findings were generated yet.");
+        assertThat(report).contains("## Project Summary");
+        assertThat(report).doesNotContain("## Findings");
     }
 
     @Test
@@ -92,6 +94,7 @@ class MarkdownReportRendererTest {
         var report = new MarkdownReportRenderer().render(request, result);
 
         assertThat(report).contains("Project path: `");
+        assertThat(report).contains("## Framework Compatibility");
         assertThat(report).contains("### [RISK] Upgrade Spring Boot before moving to Java 21");
         assertThat(report).doesNotContain("- ID:");
         assertThat(report).doesNotContain("- OpenRewrite recipe:");
@@ -117,6 +120,8 @@ class MarkdownReportRendererTest {
 
         assertThat(report).contains("Spring Boot version: Unknown");
         assertThat(report).contains("Project path: `");
+        assertThat(report).contains("## Project Summary");
+        assertThat(report).contains("## Framework Compatibility");
         assertThat(report).contains("- Build tool: Maven");
         assertThat(report).contains("- Declared Java version: 8");
         assertThat(report).contains("- Target Java version: 21");

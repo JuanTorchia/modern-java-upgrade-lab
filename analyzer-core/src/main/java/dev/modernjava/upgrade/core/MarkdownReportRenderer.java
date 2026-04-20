@@ -1,7 +1,10 @@
 package dev.modernjava.upgrade.core;
 
 import java.nio.file.Path;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class MarkdownReportRenderer {
@@ -14,20 +17,35 @@ public class MarkdownReportRenderer {
 
         report.append("# Modern Java Upgrade Report\n\n");
         report.append("Project path: `").append(displayPath(request.projectPath())).append("`\n\n");
-        report.append("## Summary\n\n");
+        report.append("## Project Summary\n\n");
         report.append("- Build tool: ").append(displayBuildTool(metadata.buildTool())).append('\n');
         report.append("- Declared Java version: ").append(displayValue(metadata.declaredJavaVersion())).append('\n');
         report.append("- Target Java version: ").append(result.targetJavaVersion()).append('\n');
-        report.append("- Spring Boot version: ").append(displayValue(metadata.springBootVersion())).append("\n\n");
-        report.append("## Findings\n\n");
+        report.append("- Spring Boot version: ").append(displayValue(metadata.springBootVersion())).append('\n');
 
         List<Finding> findings = result.findings();
         if (findings.isEmpty()) {
+            report.append('\n');
             report.append("No findings were generated yet.");
             return report.toString();
         }
 
-        for (Finding finding : findings) {
+        var findingsByCategory = groupFindingsByCategory(findings);
+        for (var section : sectionTitles().entrySet()) {
+            var sectionFindings = findingsByCategory.getOrDefault(section.getKey(), List.of());
+            if (sectionFindings.isEmpty()) {
+                continue;
+            }
+            report.append("\n## ").append(section.getValue()).append("\n\n");
+            for (Finding finding : sectionFindings) {
+                appendFinding(report, finding);
+            }
+        }
+
+        return report.toString().stripTrailing();
+    }
+
+    private static void appendFinding(StringBuilder report, Finding finding) {
             report.append("### [")
                     .append(displayValue(finding.severity().name()))
                     .append("] ")
@@ -44,9 +62,6 @@ public class MarkdownReportRenderer {
                         .append("`\n");
             }
             report.append('\n');
-        }
-
-        return report.toString().stripTrailing();
     }
 
     private static String displayBuildTool(String value) {
@@ -70,6 +85,28 @@ public class MarkdownReportRenderer {
 
     private static String displayPath(Path path) {
         return path == null ? "Unknown" : path.toAbsolutePath().normalize().toString();
+    }
+
+    private static Map<FindingCategory, List<Finding>> groupFindingsByCategory(List<Finding> findings) {
+        var grouped = new EnumMap<FindingCategory, List<Finding>>(FindingCategory.class);
+        for (Finding finding : findings) {
+            grouped.computeIfAbsent(finding.category(), ignored -> new java.util.ArrayList<>()).add(finding);
+        }
+        return grouped;
+    }
+
+    private static Map<FindingCategory, String> sectionTitles() {
+        var sections = new LinkedHashMap<FindingCategory, String>();
+        sections.put(FindingCategory.RISK, "Migration Risks");
+        sections.put(FindingCategory.BUILD, "Build & Tooling");
+        sections.put(FindingCategory.FRAMEWORK, "Framework Compatibility");
+        sections.put(FindingCategory.LANGUAGE, "Language Modernization");
+        sections.put(FindingCategory.CONCURRENCY, "Concurrency");
+        sections.put(FindingCategory.PERFORMANCE, "Performance");
+        sections.put(FindingCategory.OBSERVABILITY, "Observability");
+        sections.put(FindingCategory.AUTOMATION, "Automation Suggestions");
+        sections.put(FindingCategory.BASELINE, "Baseline & Planning");
+        return sections;
     }
 
     private static String openRewriteMavenCommand(String recipe) {
