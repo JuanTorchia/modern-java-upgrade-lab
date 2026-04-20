@@ -26,7 +26,7 @@ Aprendi que despues del scaffold viene una decision importante: seguir construye
 
 ## Resultado Concreto
 
-Quedo definido el diseno y el plan de la Iteracion 2: motor de reglas en `analyzer-core`, primeras reglas Java 8 a 17, CLI delegando al analyzer y una verificacion completa con JDK 25.
+Quedo definido e implementado el primer corte de la Iteracion 2: motor de reglas en `analyzer-core`, primeras reglas Java 8 a 17, CLI delegando al analyzer y cobertura para no perder recomendaciones de OpenRewrite hacia Java 21.
 
 ## Como Lo Contaria En Un Blog
 
@@ -34,8 +34,10 @@ Despues del primer MVP, el proyecto ya podia generar un reporte. Pero eso no alc
 
 El siguiente paso fue preguntarme donde iba a vivir el conocimiento de migracion. La respuesta fue un motor de reglas simple. No un plugin system, no una arquitectura gigante, solo un lugar claro para poner evidencia, severidad y recomendacion.
 
+Tambien aparecio una buena senal tecnica: al mover la logica desde el CLI al analyzer, casi rompi el caso Java 21. Eso obligo a agregar una prueba de regresion. Esa clase de tropiezo temprano es valiosa porque muestra que el proyecto ya necesita cuidar comportamiento existente, no solo agregar features.
+
 Ese cambio marca el inicio real del proyecto: de reporte hardcodeado a laboratorio de reglas de migracion.
 
 ## Proximo Paso
 
-Implementar el motor de reglas y las primeras reglas Java 8 a 17 siguiendo el plan documentado.
+Revisar el reporte resultante con ojos de usuario y decidir si el proximo paso es mejorar secciones del Markdown o agregar deteccion de patrones de codigo fuente.

@@ -31,7 +31,7 @@ public final class Java8To17Rules {
                 "Declared Java version is " + context.metadata().declaredJavaVersion(),
                 "Establish a Java " + context.request().targetJavaVersion()
                         + " build and test baseline before introducing optional language modernization.",
-                "org.openrewrite.java.migrate.UpgradeToJava17"));
+                null));
     }
 
     private static List<Finding> springBoot2Compatibility(RuleContext context) {
@@ -47,7 +47,9 @@ public final class Java8To17Rules {
                 "Spring Boot 2.x needs compatibility validation before a Java "
                         + context.request().targetJavaVersion() + " migration",
                 "Detected Spring Boot " + springBootVersion,
-                "Validate the project on Spring Boot 2.7.x before the Java 17 rollout. Treat Spring Boot 3 as a separate migration because it also introduces Jakarta namespace changes.",
+                "Validate the project on Spring Boot 2.7.x before the Java "
+                        + context.request().targetJavaVersion()
+                        + " rollout. Treat Spring Boot 3 as a separate migration because it also introduces Jakarta namespace changes.",
                 null));
     }
 
