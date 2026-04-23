@@ -23,6 +23,7 @@ public class MarkdownReportRenderer {
         report.append("- Declared Java version: ").append(displayValue(metadata.declaredJavaVersion())).append('\n');
         report.append("- Target Java version: ").append(result.targetJavaVersion()).append('\n');
         report.append("- Spring Boot version: ").append(displayValue(metadata.springBootVersion())).append('\n');
+        appendDiagnostics(report, metadata.diagnostics());
 
         List<Finding> findings = result.findings();
         if (findings.isEmpty()) {
@@ -44,6 +45,25 @@ public class MarkdownReportRenderer {
         }
 
         return report.toString().stripTrailing();
+    }
+
+    private static void appendDiagnostics(StringBuilder report, List<InspectorDiagnostic> diagnostics) {
+        if (diagnostics.isEmpty()) {
+            return;
+        }
+
+        report.append("\n## Inspection Diagnostics\n\n");
+        for (InspectorDiagnostic diagnostic : diagnostics) {
+            report.append("### [")
+                    .append(displayValue(diagnostic.severity().name()))
+                    .append("] ")
+                    .append(displayValue(diagnostic.source()))
+                    .append("\n\n");
+            report.append("- Message: ").append(displayText(diagnostic.message())).append('\n');
+            if (diagnostic.path() != null) {
+                report.append("- Path: `").append(displayText(diagnostic.path().toString())).append("`\n");
+            }
+        }
     }
 
     private static void appendFinding(StringBuilder report, Finding finding) {

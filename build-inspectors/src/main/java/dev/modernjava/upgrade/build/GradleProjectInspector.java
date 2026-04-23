@@ -49,7 +49,8 @@ public final class GradleProjectInspector {
                 collectDependencies(content, catalog),
                 collectBuildPlugins(content, catalog),
                 collectCompilerArgs(content),
-                List.of());
+                List.of(),
+                catalog.diagnostics());
     }
 
     private static Path resolveBuildFile(Path projectPath) {

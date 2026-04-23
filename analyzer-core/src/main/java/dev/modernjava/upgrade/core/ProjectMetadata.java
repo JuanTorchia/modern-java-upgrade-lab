@@ -10,7 +10,8 @@ public record ProjectMetadata(
         List<String> dependencies,
         List<String> buildPlugins,
         List<String> compilerArgs,
-        List<SourcePattern> sourcePatterns) {
+        List<SourcePattern> sourcePatterns,
+        List<InspectorDiagnostic> diagnostics) {
 
     public ProjectMetadata {
         buildTool = Objects.requireNonNull(buildTool, "buildTool");
@@ -20,21 +21,28 @@ public record ProjectMetadata(
         buildPlugins = List.copyOf(Objects.requireNonNull(buildPlugins, "buildPlugins"));
         compilerArgs = List.copyOf(Objects.requireNonNull(compilerArgs, "compilerArgs"));
         sourcePatterns = List.copyOf(Objects.requireNonNull(sourcePatterns, "sourcePatterns"));
+        diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
     }
 
     public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
             List<String> dependencies, List<String> buildPlugins) {
-        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of(), List.of());
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of(), List.of(), List.of());
     }
 
     public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
             List<String> dependencies, List<String> buildPlugins, List<SourcePattern> sourcePatterns) {
-        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of(), sourcePatterns);
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of(), sourcePatterns, List.of());
+    }
+
+    public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
+            List<String> dependencies, List<String> buildPlugins, List<String> compilerArgs,
+            List<SourcePattern> sourcePatterns) {
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, compilerArgs, sourcePatterns, List.of());
     }
 
     public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
             List<String> dependencies) {
-        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, List.of(), List.of(), List.of());
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, List.of(), List.of(), List.of(), List.of());
     }
 
     private static String normalizeOptionalText(String value) {
