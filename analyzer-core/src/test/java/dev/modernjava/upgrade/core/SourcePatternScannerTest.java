@@ -137,6 +137,131 @@ class SourcePatternScannerTest {
     }
 
     @Test
+    void detectsStructuredConcurrencyPreviewImport() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/StructuredWorker.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                import java.util.concurrent.StructuredTaskScope;
+
+                final class StructuredWorker {
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW);
+        assertThat(patterns)
+                .extracting(SourcePattern::relativePath)
+                .containsExactly(Path.of("src/main/java/example/StructuredWorker.java"));
+        assertThat(patterns)
+                .extracting(SourcePattern::lineNumber)
+                .containsExactly(3);
+    }
+
+    @Test
+    void keepsStructuredConcurrencyPreviewInSourceOrder() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/StructuredController.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                import java.util.concurrent.StructuredTaskScope;
+                import java.util.Map;
+
+                final class StructuredController {
+                    Map<String, Object> response() {
+                        return Map.of();
+                    }
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(
+                        SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW,
+                        SourcePatternType.MAP_STRING_OBJECT);
+        assertThat(patterns)
+                .extracting(SourcePattern::lineNumber)
+                .containsExactly(3, 7);
+    }
+
+    @Test
+    void detectsStructuredConcurrencyPreviewQualifiedReference() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/StructuredWorker.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                final class StructuredWorker {
+                    java.util.concurrent.StructuredTaskScope<?> scope;
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW);
+        assertThat(patterns)
+                .extracting(SourcePattern::lineNumber)
+                .containsExactly(4);
+    }
+
+    @Test
+    void ignoresStructuredConcurrencyTextInCommentsStringsAndUnrelatedIdentifiers() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/StructuredText.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                final class StructuredText {
+                    String text = "java.util.concurrent.StructuredTaskScope";
+                    // import java.util.concurrent.StructuredTaskScope;
+                    Object StructuredTaskScope = new Object();
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns).isEmpty();
+    }
+
+    @Test
+    void skipsMalformedJavaFilesDuringStructuredConcurrencyParsing() throws Exception {
+        var malformed = tempDir.resolve("src/main/java/example/Broken.java");
+        Files.createDirectories(malformed.getParent());
+        Files.writeString(malformed, """
+                package example;
+
+                class Broken {
+                    void broken(
+                }
+                """);
+        var valid = tempDir.resolve("src/main/java/example/Valid.java");
+        Files.writeString(valid, """
+                package example;
+
+                import java.lang.ThreadLocal;
+
+                class Valid {
+                    ThreadLocal<String> context = new ThreadLocal<>();
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(SourcePatternType.THREAD_LOCAL);
+    }
+
+    @Test
     void ignoresUnsafeImportsWithoutActionableUsage() throws Exception {
         var source = tempDir.resolve("src/main/java/example/UnsafeImportOnly.java");
         Files.createDirectories(source.getParent());

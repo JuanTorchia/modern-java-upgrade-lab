@@ -28,6 +28,7 @@
         <picocli.version>4.7.6</picocli.version>
         <maven.model.version>3.9.9</maven.model.version>
         <tomlj.version>1.1.1</tomlj.version>
+        <javaparser.version>3.28.0</javaparser.version>
     </properties>
 
     <dependencyManagement>
