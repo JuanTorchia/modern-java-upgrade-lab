@@ -147,6 +147,7 @@ public final class DefaultMigrationRules {
                     case MAP_STRING_OBJECT -> mapStringObjectFinding(pattern);
                     case SIMPLE_DATE_FORMAT -> simpleDateFormatFinding(pattern);
                     case EXECUTOR_FACTORY -> executorFactoryFinding(pattern);
+                    case THREAD_LOCAL -> threadLocalFinding(pattern);
                 })
                 .toList();
     }
@@ -155,6 +156,7 @@ public final class DefaultMigrationRules {
         return switch (pattern.type()) {
             case MAP_STRING_OBJECT, SIMPLE_DATE_FORMAT -> targetsJava17OrLater(context);
             case EXECUTOR_FACTORY -> context.request().targetJavaVersion() >= 21;
+            case THREAD_LOCAL -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
         };
     }
 
@@ -191,6 +193,18 @@ public final class DefaultMigrationRules {
                 "Executor factory usage should be reviewed before adopting virtual threads",
                 sourceEvidence(pattern),
                 "Evaluate whether this blocking workload can use virtual threads after measuring behavior and preserving executor lifecycle boundaries.",
+                null);
+    }
+
+    private static Finding threadLocalFinding(SourcePattern pattern) {
+        return new Finding(
+                sourceFindingId(pattern),
+                FindingCategory.CONCURRENCY,
+                FindingSeverity.INFO,
+                "Concurrency modernization",
+                "ThreadLocal usage should be reviewed for scoped values",
+                sourceEvidence(pattern),
+                "Review whether this context propagation can move toward scoped values on Java 25. Do not rewrite automatically; validate lifecycle, framework integration, and request boundaries first.",
                 null);
     }
 

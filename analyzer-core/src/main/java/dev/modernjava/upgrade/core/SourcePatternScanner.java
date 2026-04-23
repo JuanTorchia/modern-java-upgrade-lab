@@ -68,6 +68,13 @@ public final class SourcePatternScanner {
                         index + 1,
                         lines.get(index)));
             }
+            if (line.contains("ThreadLocal") && reportedTypes.add(SourcePatternType.THREAD_LOCAL)) {
+                patterns.add(new SourcePattern(
+                        SourcePatternType.THREAD_LOCAL,
+                        relativePath,
+                        index + 1,
+                        lines.get(index)));
+            }
         }
     }
 

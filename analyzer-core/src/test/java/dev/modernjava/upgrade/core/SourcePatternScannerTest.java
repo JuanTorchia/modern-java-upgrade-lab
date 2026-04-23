@@ -87,4 +87,28 @@ class SourcePatternScannerTest {
                 .extracting(SourcePattern::lineNumber)
                 .containsExactly(6);
     }
+
+    @Test
+    void detectsThreadLocalUsageOutsideImports() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/RequestContext.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                import java.lang.ThreadLocal;
+
+                final class RequestContext {
+                    private static final ThreadLocal<String> TENANT = new ThreadLocal<>();
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(SourcePatternType.THREAD_LOCAL);
+        assertThat(patterns)
+                .extracting(SourcePattern::lineNumber)
+                .containsExactly(6);
+    }
 }

@@ -21,6 +21,7 @@ The goal is not to maintain a generic changelog. Each entry captures technical d
 - [013 - Java 17 to 21 Spring Boot baseline rule](013-java-17-to-21-spring-boot-baseline-rule.md)
 - [014 - Java 21 to 25 rule catalog](014-java-21-to-25-rule-catalog.md)
 - [015 - Java 21 to 25 baseline review rule](015-java-21-to-25-baseline-review-rule.md)
+- [016 - ThreadLocal scoped values review rule](016-threadlocal-scoped-values-review-rule.md)
 
 ## Entry Format
 
