@@ -92,6 +92,8 @@ Poor candidates:
 
 If a rule needs AST-level context, document that need first instead of forcing it into the text scanner.
 
+See [JavaParser-Backed Source Scanning Design](javaparser-source-scanning-design.md) for the proposed AST-backed scanner path.
+
 ## Build Inspector Rules
 
 Build inspectors should prefer clear, bounded evidence over pretending to resolve the full build.
