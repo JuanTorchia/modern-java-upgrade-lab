@@ -73,6 +73,38 @@ class MarkdownReportRendererTest {
     }
 
     @Test
+    void rendersInspectionDiagnosticsInDedicatedSection() {
+        var request = new AnalysisRequest(Path.of("/workspace/sample-project"), 25);
+        var metadata = new ProjectMetadata(
+                "gradle",
+                "21",
+                "3.3.5",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(new InspectorDiagnostic(
+                        "Gradle version catalog",
+                        InspectorDiagnosticSeverity.WARNING,
+                        "Could not parse version catalog; catalog aliases were skipped.",
+                        Path.of("gradle", "libs.versions.toml"))));
+        var result = new AnalysisResult(metadata, 25, List.of());
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains(
+                """
+                ## Inspection Diagnostics
+
+                ### [WARNING] Gradle version catalog
+
+                - Message: Could not parse version catalog; catalog aliases were skipped.
+                - Path: `%s`
+                """.formatted(Path.of("gradle", "libs.versions.toml")).stripTrailing());
+        assertThat(report).contains("No findings were generated yet.");
+    }
+
+    @Test
     void omitsOpenRewriteRecipeLineWhenRecipeIsMissing() {
         var request = new AnalysisRequest(Path.of("/workspace/sample-project"), 21);
         var metadata = new ProjectMetadata(

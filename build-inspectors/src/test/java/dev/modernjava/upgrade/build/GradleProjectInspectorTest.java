@@ -102,6 +102,14 @@ class GradleProjectInspectorTest {
         assertThat(metadata.springBootVersion()).isEqualTo("3.3.5");
         assertThat(metadata.dependencies()).containsExactly("org.springframework.boot:spring-boot-starter-web");
         assertThat(metadata.buildPlugins()).contains("java", "org.springframework.boot");
+        assertThat(metadata.diagnostics())
+                .singleElement()
+                .satisfies(diagnostic -> {
+                    assertThat(diagnostic.source()).isEqualTo("Gradle version catalog");
+                    assertThat(diagnostic.severity().name()).isEqualTo("WARNING");
+                    assertThat(diagnostic.message()).contains("Could not parse version catalog");
+                    assertThat(diagnostic.path()).isEqualTo(Path.of("gradle", "libs.versions.toml"));
+                });
     }
 
     @Test

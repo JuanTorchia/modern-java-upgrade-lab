@@ -48,7 +48,8 @@ public final class AnalyzeCommand implements Callable<Integer> {
                     inspectedMetadata.dependencies(),
                     inspectedMetadata.buildPlugins(),
                     inspectedMetadata.compilerArgs(),
-                    sourcePatterns);
+                    sourcePatterns,
+                    inspectedMetadata.diagnostics());
             var result = new DefaultAnalyzer(metadata).analyze(request);
             var markdown = new MarkdownReportRenderer().render(request, result);
             writeReport(markdown);

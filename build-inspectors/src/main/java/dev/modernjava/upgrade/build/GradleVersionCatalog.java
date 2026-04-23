@@ -1,5 +1,7 @@
 package dev.modernjava.upgrade.build;
 
+import dev.modernjava.upgrade.core.InspectorDiagnostic;
+import dev.modernjava.upgrade.core.InspectorDiagnosticSeverity;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,23 +16,28 @@ import org.tomlj.TomlTable;
 final class GradleVersionCatalog {
 
     private static final GradleVersionCatalog EMPTY =
-            new GradleVersionCatalog(Map.of(), Map.of(), Map.of());
+            new GradleVersionCatalog(Map.of(), Map.of(), Map.of(), List.of());
+    private static final Path CATALOG_PATH = Path.of("gradle", "libs.versions.toml");
+    private static final String DIAGNOSTIC_SOURCE = "Gradle version catalog";
 
     private final Map<String, CatalogLibrary> libraries;
     private final Map<String, CatalogPlugin> plugins;
     private final Map<String, List<String>> bundles;
+    private final List<InspectorDiagnostic> diagnostics;
 
     private GradleVersionCatalog(
             Map<String, CatalogLibrary> libraries,
             Map<String, CatalogPlugin> plugins,
-            Map<String, List<String>> bundles) {
+            Map<String, List<String>> bundles,
+            List<InspectorDiagnostic> diagnostics) {
         this.libraries = libraries;
         this.plugins = plugins;
         this.bundles = bundles;
+        this.diagnostics = List.copyOf(diagnostics);
     }
 
     static GradleVersionCatalog read(Path projectRoot) {
-        var catalogFile = projectRoot.resolve("gradle").resolve("libs.versions.toml");
+        var catalogFile = projectRoot.resolve(CATALOG_PATH);
         if (!Files.isRegularFile(catalogFile)) {
             return EMPTY;
         }
@@ -39,17 +46,34 @@ final class GradleVersionCatalog {
         try {
             result = Toml.parse(Files.readString(catalogFile));
         } catch (IOException exception) {
-            return EMPTY;
+            return withDiagnostic("Could not read version catalog; catalog aliases were skipped.");
         }
         if (result.hasErrors()) {
-            return EMPTY;
+            return withDiagnostic("Could not parse version catalog; catalog aliases were skipped.");
         }
 
         var versions = collectVersions(result);
         return new GradleVersionCatalog(
                 collectLibraries(result),
                 collectPlugins(result, versions),
-                collectBundles(result));
+                collectBundles(result),
+                List.of());
+    }
+
+    List<InspectorDiagnostic> diagnostics() {
+        return diagnostics;
+    }
+
+    private static GradleVersionCatalog withDiagnostic(String message) {
+        return new GradleVersionCatalog(
+                Map.of(),
+                Map.of(),
+                Map.of(),
+                List.of(new InspectorDiagnostic(
+                        DIAGNOSTIC_SOURCE,
+                        InspectorDiagnosticSeverity.WARNING,
+                        message,
+                        CATALOG_PATH)));
     }
 
     void addDependencies(String reference, Set<String> dependencies) {
