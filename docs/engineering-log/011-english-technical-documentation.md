@@ -12,14 +12,14 @@ Align the public repository voice with the intended audience: senior Java engine
 
 - Use English for public repository content.
 - Prefer technical precision over motivational or marketing language.
-- Keep the existing `docs/bitacora/` path for now, but describe it as the engineering log in user-facing text.
+- Keep the existing engineering-log material traceable while moving the public path to `docs/engineering-log/`.
 - Add a dedicated documentation style guide so future contributors have a concrete writing standard.
 - Update the current README, contribution guide, index, and latest engineering log entry before broadening the cleanup.
 - Treat the remaining Spanish historical notes as explicit documentation debt before a public release announcement.
 
 ## Rejected Options
 
-- Rename the full `docs/bitacora/` directory immediately. That would create unnecessary churn while the MVP is still closing.
+- Leave the historical Spanish path in place. That would keep churn low, but it would weaken the repository now that it is public.
 - Translate and rename every historical file in one large commit. That would mix project voice alignment with archival cleanup.
 - Keep bilingual public docs. That would weaken the project if the goal is broader open source adoption and conference/blog reuse.
 
@@ -38,7 +38,7 @@ The tone also matters. A migration analyzer aimed at experienced engineers shoul
 
 ## Implementation Notes
 
-I kept the current directory name to avoid link churn during the MVP closure phase. A later cleanup can rename `docs/bitacora/` to `docs/engineering-log/` once the historical entries are translated and the project structure stabilizes.
+The repository now uses `docs/engineering-log/` for public documentation. Historical filenames were renamed to English to make the project easier to browse from GitHub.
 
 ## Verification
 
@@ -50,4 +50,4 @@ This decision can become a short article section: "Why a Java migration tool sho
 
 ## Next Step
 
-Translate or rewrite the remaining historical engineering log entries and internal planning notes in English, then decide whether to rename the directory to `docs/engineering-log/`.
+Keep future engineering log entries in English and avoid committing internal planning artifacts as public documentation unless they are intentionally edited for external readers.

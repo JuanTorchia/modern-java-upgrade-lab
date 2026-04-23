@@ -67,4 +67,4 @@ Use this structure when practical:
 
 ## Public Release Gate
 
-Before a public announcement or external call for contributors, audit `docs/` for Spanish working notes, stale internal planning artifacts, and mixed-language filenames. Historical notes may remain during active development, but release-facing documentation should be English-only and technically coherent.
+Before a public announcement or external call for contributors, audit `docs/` for Spanish working notes, stale internal planning artifacts, and mixed-language filenames. Release-facing documentation should be English-only and technically coherent.

@@ -46,4 +46,4 @@ mvn test
 
 ## Engineering Log
 
-Project decisions are recorded under `docs/bitacora/`. If a contribution changes project direction, add or update an engineering log entry.
+Project decisions are recorded under `docs/engineering-log/`. If a contribution changes project direction, add or update an engineering log entry.

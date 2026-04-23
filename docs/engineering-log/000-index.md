@@ -6,17 +6,18 @@ The goal is not to maintain a generic changelog. Each entry captures technical d
 
 ## Entries
 
-- [001 - Idea validation](001-idea-y-validacion.md)
-- [002 - MVP design](002-diseno-del-mvp.md)
-- [003 - Implementation plan](003-plan-de-implementacion.md)
-- [004 - Repository scaffold](004-scaffold-del-repo.md)
-- [005 - MVP final review](005-revision-final-del-mvp.md)
-- [006 - First Java 8 to 17 rules](006-primeras-reglas-java-8-a-17.md)
-- [007 - Usable CLI and extensible reports](007-cli-usable-y-reportes-extensibles.md)
-- [008 - Source pattern detection](008-deteccion-de-patrones-de-codigo.md)
-- [009 - Gradle support MVP](009-soporte-gradle-mvp.md)
-- [010 - CLI MVP closure](010-cierre-del-mvp-cli.md)
+- [001 - Idea validation](001-idea-validation.md)
+- [002 - MVP design](002-mvp-design.md)
+- [003 - Implementation plan](003-implementation-plan.md)
+- [004 - Repository scaffold](004-repository-scaffold.md)
+- [005 - MVP final review](005-mvp-final-review.md)
+- [006 - First Java 8 to 17 rules](006-first-java-8-to-17-rules.md)
+- [007 - Usable CLI and extensible reports](007-usable-cli-and-extensible-reports.md)
+- [008 - Source pattern detection](008-source-pattern-detection.md)
+- [009 - Gradle support MVP](009-gradle-support-mvp.md)
+- [010 - CLI MVP closure](010-cli-mvp-closure.md)
 - [011 - English technical documentation baseline](011-english-technical-documentation.md)
+- [012 - Public repository readiness](012-public-repository-readiness.md)
 
 ## Entry Format
 

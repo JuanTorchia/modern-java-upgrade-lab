@@ -1,5 +1,7 @@
 # Modern Java Upgrade Lab
 
+[![CI](https://github.com/JuanTorchia/modern-java-upgrade-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/JuanTorchia/modern-java-upgrade-lab/actions/workflows/ci.yml)
+
 Evidence-based Java LTS migration reports for teams moving from Java 8/11/17/21 to modern Java.
 
 Modern Java Upgrade Lab is an open source CLI and engineering lab for evidence-based Java modernization across LTS releases. It is not a catalog of language features. It inspects real projects, reports migration risks, identifies modernization candidates, and produces artifacts that senior engineers can review in architecture discussions, migration planning sessions, and technical write-ups.
@@ -71,7 +73,7 @@ During MVP development, the repository is organized around these current and pla
 - `rewrite-adapter/` - OpenRewrite recipe suggestions.
 - `examples/` - reproducible migration examples.
 - `reports/` - sample generated reports.
-- `docs/` - vision, roadmap, blog ideas, talks, and bitacora.
+- `docs/` - vision, roadmap, blog ideas, contribution guides, and the engineering log.
 
 ## Contributing
 
