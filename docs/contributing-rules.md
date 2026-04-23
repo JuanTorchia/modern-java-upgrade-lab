@@ -98,6 +98,8 @@ Build inspectors should prefer clear, bounded evidence over pretending to resolv
 
 For Gradle, the current MVP reads visible `build.gradle` and `build.gradle.kts` content. It does not execute Gradle, resolve version catalogs, inspect `buildSrc`, or evaluate convention plugins.
 
+See [Gradle Version Catalog Inspection](gradle-version-catalog-inspection.md) for the proposed read-only version catalog path.
+
 Good Gradle contributions:
 
 - fixtures for common `plugins`, `java`, `toolchain`, and `dependencies` patterns;
