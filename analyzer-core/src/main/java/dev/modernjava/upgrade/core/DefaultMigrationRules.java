@@ -13,6 +13,7 @@ public final class DefaultMigrationRules {
     public static List<MigrationRule> defaults() {
         return List.of(
                 DefaultMigrationRules::java8Baseline,
+                DefaultMigrationRules::java21To25BaselineReview,
                 DefaultMigrationRules::springBoot2Compatibility,
                 DefaultMigrationRules::springBootJava17To21BaselineReview,
                 DefaultMigrationRules::explicitMavenCompilerPlugin,
@@ -35,6 +36,23 @@ public final class DefaultMigrationRules {
                 "Declared Java version is " + context.metadata().declaredJavaVersion(),
                 "Establish a Java " + context.request().targetJavaVersion()
                         + " build and test baseline before introducing optional language modernization.",
+                null));
+    }
+
+    private static List<Finding> java21To25BaselineReview(RuleContext context) {
+        if (context.request().targetJavaVersion() != 25 || !declaresJava21(context.metadata())) {
+            return List.of();
+        }
+
+        return List.of(new Finding(
+                "java-21-to-25-baseline-review",
+                FindingCategory.BASELINE,
+                FindingSeverity.INFO,
+                "Java baseline",
+                "Java 21 to 25 migration should start with a build and test baseline",
+                "Declared Java version is " + context.metadata().declaredJavaVersion()
+                        + "; target Java version is " + context.request().targetJavaVersion(),
+                "Establish a Java 25 build and test baseline before enabling optional language, runtime, GC, JFR, or AOT changes.",
                 null));
     }
 
@@ -202,5 +220,9 @@ public final class DefaultMigrationRules {
 
     private static boolean declaresJava17(ProjectMetadata metadata) {
         return "17".equals(metadata.declaredJavaVersion());
+    }
+
+    private static boolean declaresJava21(ProjectMetadata metadata) {
+        return "21".equals(metadata.declaredJavaVersion());
     }
 }
