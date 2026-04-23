@@ -175,6 +175,7 @@ public final class DefaultMigrationRules {
                     case SIMPLE_DATE_FORMAT -> simpleDateFormatFinding(pattern);
                     case EXECUTOR_FACTORY -> executorFactoryFinding(pattern);
                     case THREAD_LOCAL -> threadLocalFinding(pattern);
+                    case STRUCTURED_CONCURRENCY_PREVIEW -> structuredConcurrencyPreviewFinding(pattern);
                     case UNSAFE_MEMORY_ACCESS -> unsafeMemoryAccessFinding(pattern);
                 })
                 .toList();
@@ -185,6 +186,7 @@ public final class DefaultMigrationRules {
             case MAP_STRING_OBJECT, SIMPLE_DATE_FORMAT -> targetsJava17OrLater(context);
             case EXECUTOR_FACTORY -> context.request().targetJavaVersion() >= 21;
             case THREAD_LOCAL -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
+            case STRUCTURED_CONCURRENCY_PREVIEW -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
             case UNSAFE_MEMORY_ACCESS -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
         };
     }
@@ -234,6 +236,18 @@ public final class DefaultMigrationRules {
                 "ThreadLocal usage should be reviewed for scoped values",
                 sourceEvidence(pattern),
                 "Review whether this context propagation can move toward scoped values on Java 25. Do not rewrite automatically; validate lifecycle, framework integration, and request boundaries first.",
+                null);
+    }
+
+    private static Finding structuredConcurrencyPreviewFinding(SourcePattern pattern) {
+        return new Finding(
+                sourceFindingId(pattern),
+                FindingCategory.CONCURRENCY,
+                FindingSeverity.RISK,
+                "Structured concurrency",
+                "Structured concurrency preview usage is a Java 25 migration boundary",
+                sourceEvidence(pattern),
+                "Keep structured concurrency behind explicit preview boundaries. Do not present it as stable migration work; review source and bytecode compatibility on every JDK update.",
                 null);
     }
 

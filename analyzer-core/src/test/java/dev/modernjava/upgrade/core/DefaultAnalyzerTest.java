@@ -291,6 +291,57 @@ class DefaultAnalyzerTest {
     }
 
     @Test
+    void reportsStructuredConcurrencyPreviewAsJava25Boundary() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "21",
+                "3.4.4",
+                List.of(),
+                List.of(),
+                List.of(new SourcePattern(
+                        SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW,
+                        Path.of("src/main/java/example/StructuredWorker.java"),
+                        3,
+                        "import java.util.concurrent.StructuredTaskScope;")));
+        var request = new AnalysisRequest(Path.of("."), 25);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("source-structured-concurrency-preview-src-main-java-example-structuredworker-java-3"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.category()).isEqualTo(FindingCategory.CONCURRENCY);
+                    assertThat(finding.severity()).isEqualTo(FindingSeverity.RISK);
+                    assertThat(finding.title()).isEqualTo("Structured concurrency preview usage is a Java 25 migration boundary");
+                    assertThat(finding.recommendation())
+                            .contains("Keep structured concurrency behind explicit preview boundaries")
+                            .contains("Do not present it as stable migration work");
+                });
+    }
+
+    @Test
+    void doesNotReportStructuredConcurrencyPreviewOutsideJava21To25Migration() {
+        var sourcePatterns = List.of(new SourcePattern(
+                SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW,
+                Path.of("src/main/java/example/StructuredWorker.java"),
+                3,
+                "import java.util.concurrent.StructuredTaskScope;"));
+        var java17Metadata = new ProjectMetadata("maven", "17", "3.1.12", List.of(), List.of(), sourcePatterns);
+        var java21Metadata = new ProjectMetadata("maven", "21", "3.4.4", List.of(), List.of(), sourcePatterns);
+
+        var java17To25 = new DefaultAnalyzer(java17Metadata).analyze(new AnalysisRequest(Path.of("."), 25));
+        var java21To21 = new DefaultAnalyzer(java21Metadata).analyze(new AnalysisRequest(Path.of("."), 21));
+
+        assertThat(java17To25.findings())
+                .extracting(Finding::id)
+                .doesNotContain("source-structured-concurrency-preview-src-main-java-example-structuredworker-java-3");
+        assertThat(java21To21.findings())
+                .extracting(Finding::id)
+                .doesNotContain("source-structured-concurrency-preview-src-main-java-example-structuredworker-java-3");
+    }
+
+    @Test
     void reportsSourceModernizationFindings() {
         var metadata = new ProjectMetadata(
                 "maven",

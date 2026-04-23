@@ -1,5 +1,9 @@
 package dev.modernjava.upgrade.core;
 
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +14,7 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 public final class SourcePatternScanner {
@@ -45,6 +50,7 @@ public final class SourcePatternScanner {
         var sanitizedLines = stripCommentsAndLiterals(lines);
         var relativePath = root.relativize(javaFile);
         var reportedTypes = EnumSet.noneOf(SourcePatternType.class);
+        var filePatterns = new ArrayList<SourcePattern>();
         var importsUnsafe = importsSunMiscUnsafe(sanitizedLines);
         for (int index = 0; index < lines.size(); index++) {
             var line = sanitizedLines.get(index);
@@ -52,14 +58,14 @@ public final class SourcePatternScanner {
                 continue;
             }
             if (line.contains("Map<String, Object>") && reportedTypes.add(SourcePatternType.MAP_STRING_OBJECT)) {
-                patterns.add(new SourcePattern(
+                filePatterns.add(new SourcePattern(
                         SourcePatternType.MAP_STRING_OBJECT,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
             if (line.contains("SimpleDateFormat") && reportedTypes.add(SourcePatternType.SIMPLE_DATE_FORMAT)) {
-                patterns.add(new SourcePattern(
+                filePatterns.add(new SourcePattern(
                         SourcePatternType.SIMPLE_DATE_FORMAT,
                         relativePath,
                         index + 1,
@@ -67,27 +73,38 @@ public final class SourcePatternScanner {
             }
             if ((line.contains("Executors.newFixedThreadPool") || line.contains("Executors.newCachedThreadPool"))
                     && reportedTypes.add(SourcePatternType.EXECUTOR_FACTORY)) {
-                patterns.add(new SourcePattern(
+                filePatterns.add(new SourcePattern(
                         SourcePatternType.EXECUTOR_FACTORY,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
             if (line.contains("ThreadLocal") && reportedTypes.add(SourcePatternType.THREAD_LOCAL)) {
-                patterns.add(new SourcePattern(
+                filePatterns.add(new SourcePattern(
                         SourcePatternType.THREAD_LOCAL,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
             if (isUnsafeUsage(line, importsUnsafe) && reportedTypes.add(SourcePatternType.UNSAFE_MEMORY_ACCESS)) {
-                patterns.add(new SourcePattern(
+                filePatterns.add(new SourcePattern(
                         SourcePatternType.UNSAFE_MEMORY_ACCESS,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
         }
+        findStructuredConcurrencyPreviewLine(lines).ifPresent(lineNumber -> {
+            if (reportedTypes.add(SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW)) {
+                filePatterns.add(new SourcePattern(
+                        SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW,
+                        relativePath,
+                        lineNumber,
+                        lines.get(lineNumber - 1)));
+            }
+        });
+        filePatterns.sort(Comparator.comparingInt(SourcePattern::lineNumber));
+        patterns.addAll(filePatterns);
     }
 
     private static boolean isUnderIgnoredDirectory(Path root, Path path) {
@@ -107,6 +124,32 @@ public final class SourcePatternScanner {
 
     private static boolean isUnsafeUsage(String line, boolean importsUnsafe) {
         return line.contains("sun.misc.Unsafe") || (importsUnsafe && UNSAFE_SIMPLE_NAME.matcher(line).find());
+    }
+
+    private static Optional<Integer> findStructuredConcurrencyPreviewLine(List<String> lines) {
+        try {
+            var compilationUnit = StaticJavaParser.parse(String.join(System.lineSeparator(), lines));
+            return compilationUnit.getImports().stream()
+                    .filter(importDeclaration -> referencesStructuredTaskScope(importDeclaration.getNameAsString()))
+                    .findFirst()
+                    .flatMap(SourcePatternScanner::lineNumber)
+                    .or(() -> compilationUnit.findAll(ClassOrInterfaceType.class).stream()
+                            .filter(type -> referencesStructuredTaskScope(type.asString()))
+                            .findFirst()
+                            .flatMap(SourcePatternScanner::lineNumber));
+        } catch (ParseProblemException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private static boolean referencesStructuredTaskScope(String name) {
+        return name.equals("java.util.concurrent.StructuredTaskScope")
+                || name.startsWith("java.util.concurrent.StructuredTaskScope.")
+                || name.startsWith("java.util.concurrent.StructuredTaskScope<");
+    }
+
+    private static Optional<Integer> lineNumber(Node node) {
+        return node.getRange().map(range -> range.begin.line);
     }
 
     private static List<String> stripCommentsAndLiterals(List<String> lines) {
