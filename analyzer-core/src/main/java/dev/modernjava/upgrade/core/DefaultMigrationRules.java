@@ -17,6 +17,7 @@ public final class DefaultMigrationRules {
                 DefaultMigrationRules::springBoot2Compatibility,
                 DefaultMigrationRules::springBootJava17To21BaselineReview,
                 DefaultMigrationRules::explicitMavenCompilerPlugin,
+                DefaultMigrationRules::java25PreviewFeatureBoundary,
                 DefaultMigrationRules::openRewriteMigrationRecipe,
                 DefaultMigrationRules::sourcePatternFindings);
     }
@@ -118,6 +119,32 @@ public final class DefaultMigrationRules {
                 null));
     }
 
+    private static List<Finding> java25PreviewFeatureBoundary(RuleContext context) {
+        if (context.request().targetJavaVersion() != 25 || !declaresJava21(context.metadata())) {
+            return List.of();
+        }
+
+        var previewArg = context.metadata().compilerArgs().stream()
+                .filter("--enable-preview"::equals)
+                .findFirst()
+                .orElse(null);
+        if (previewArg == null) {
+            return List.of();
+        }
+
+        return List.of(new Finding(
+                "jdk-25-preview-feature-boundary",
+                FindingCategory.BUILD,
+                FindingSeverity.RISK,
+                "Compiler flags",
+                "Preview feature usage is a Java 25 migration boundary",
+                "Declared Java version is " + context.metadata().declaredJavaVersion()
+                        + "; target Java version is " + context.request().targetJavaVersion()
+                        + "; detected compiler argument `" + previewArg + "`",
+                "Treat preview/incubator feature usage as explicit technical debt. Verify source/bytecode compatibility on every JDK update.",
+                null));
+    }
+
     private static List<Finding> openRewriteMigrationRecipe(RuleContext context) {
         var recipe = switch (context.request().targetJavaVersion()) {
             case 17 -> "org.openrewrite.java.migrate.UpgradeToJava17";
@@ -148,6 +175,7 @@ public final class DefaultMigrationRules {
                     case SIMPLE_DATE_FORMAT -> simpleDateFormatFinding(pattern);
                     case EXECUTOR_FACTORY -> executorFactoryFinding(pattern);
                     case THREAD_LOCAL -> threadLocalFinding(pattern);
+                    case UNSAFE_MEMORY_ACCESS -> unsafeMemoryAccessFinding(pattern);
                 })
                 .toList();
     }
@@ -157,6 +185,7 @@ public final class DefaultMigrationRules {
             case MAP_STRING_OBJECT, SIMPLE_DATE_FORMAT -> targetsJava17OrLater(context);
             case EXECUTOR_FACTORY -> context.request().targetJavaVersion() >= 21;
             case THREAD_LOCAL -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
+            case UNSAFE_MEMORY_ACCESS -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
         };
     }
 
@@ -205,6 +234,18 @@ public final class DefaultMigrationRules {
                 "ThreadLocal usage should be reviewed for scoped values",
                 sourceEvidence(pattern),
                 "Review whether this context propagation can move toward scoped values on Java 25. Do not rewrite automatically; validate lifecycle, framework integration, and request boundaries first.",
+                null);
+    }
+
+    private static Finding unsafeMemoryAccessFinding(SourcePattern pattern) {
+        return new Finding(
+                sourceFindingId(pattern),
+                FindingCategory.BUILD,
+                FindingSeverity.RISK,
+                "Unsafe memory access",
+                "Direct sun.misc.Unsafe usage should be removed or isolated",
+                sourceEvidence(pattern),
+                "Remove direct unsafe memory-access usage where possible and audit dependencies that emit JDK warnings.",
                 null);
     }
 

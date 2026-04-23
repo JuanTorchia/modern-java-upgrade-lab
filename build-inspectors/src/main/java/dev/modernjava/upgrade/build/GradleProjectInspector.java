@@ -24,6 +24,13 @@ public final class GradleProjectInspector {
     private static final Pattern BARE_JAVA_PLUGIN = Pattern.compile("^\\s*java\\s*$", Pattern.MULTILINE);
     private static final Pattern DEPENDENCY_COORDINATE = Pattern.compile(
             "\\b(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testRuntimeOnly)\\s*(?:\\(\\s*)?['\"]([^:'\"]+:[^:'\"]+)(?::[^'\"]+)?['\"]");
+    private static final Pattern COMPILER_ARGS_LIST = Pattern.compile(
+            "compilerArgs\\s*(?:=|\\+=)\\s*(?:listOf\\s*\\(|\\[)(.*?)(?:\\)|\\])",
+            Pattern.DOTALL);
+    private static final Pattern COMPILER_ARGS_METHOD = Pattern.compile(
+            "compilerArgs\\.(?:add|addAll)\\s*\\((.*?)\\)",
+            Pattern.DOTALL);
+    private static final Pattern QUOTED_STRING = Pattern.compile("['\"]([^'\"]+)['\"]");
 
     public ProjectMetadata inspect(Path projectPath) {
         var buildFile = resolveBuildFile(Objects.requireNonNull(projectPath, "projectPath"));
@@ -34,7 +41,9 @@ public final class GradleProjectInspector {
                 detectJavaVersion(content),
                 detectSpringBootVersion(content),
                 collectDependencies(content),
-                collectBuildPlugins(content));
+                collectBuildPlugins(content),
+                collectCompilerArgs(content),
+                List.of());
     }
 
     private static Path resolveBuildFile(Path projectPath) {
@@ -99,6 +108,14 @@ public final class GradleProjectInspector {
         return List.copyOf(plugins);
     }
 
+    private static List<String> collectCompilerArgs(String content) {
+        var uncommentedContent = stripComments(content);
+        var compilerArgs = new LinkedHashSet<String>();
+        collectQuotedMatches(uncommentedContent, COMPILER_ARGS_LIST, compilerArgs);
+        collectQuotedMatches(uncommentedContent, COMPILER_ARGS_METHOD, compilerArgs);
+        return List.copyOf(compilerArgs);
+    }
+
     private static String firstMatch(String content, Pattern pattern) {
         var matcher = pattern.matcher(content);
         return matcher.find() ? matcher.group(1).trim() : null;
@@ -111,5 +128,66 @@ public final class GradleProjectInspector {
             matches.add(matcher.group(1).trim());
         }
         return List.copyOf(matches);
+    }
+
+    private static void collectQuotedMatches(String content, Pattern statementPattern, Set<String> matches) {
+        var statementMatcher = statementPattern.matcher(content);
+        while (statementMatcher.find()) {
+            var quotedMatcher = QUOTED_STRING.matcher(statementMatcher.group(1));
+            while (quotedMatcher.find()) {
+                matches.add(quotedMatcher.group(1).trim());
+            }
+        }
+    }
+
+    private static String stripComments(String content) {
+        var stripped = new StringBuilder(content.length());
+        var inBlockComment = false;
+        char quote = 0;
+        var escaped = false;
+        for (int index = 0; index < content.length(); index++) {
+            var current = content.charAt(index);
+            var next = index + 1 < content.length() ? content.charAt(index + 1) : '\0';
+
+            if (inBlockComment) {
+                if (current == '*' && next == '/') {
+                    inBlockComment = false;
+                    index++;
+                } else if (current == '\n') {
+                    stripped.append(current);
+                }
+                continue;
+            }
+
+            if (quote != 0) {
+                stripped.append(current);
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == quote) {
+                    quote = 0;
+                }
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                stripped.append(current);
+            } else if (current == '/' && next == '/') {
+                while (index < content.length() && content.charAt(index) != '\n') {
+                    index++;
+                }
+                if (index < content.length()) {
+                    stripped.append(content.charAt(index));
+                }
+            } else if (current == '/' && next == '*') {
+                inBlockComment = true;
+                index++;
+            } else {
+                stripped.append(current);
+            }
+        }
+        return stripped.toString();
     }
 }

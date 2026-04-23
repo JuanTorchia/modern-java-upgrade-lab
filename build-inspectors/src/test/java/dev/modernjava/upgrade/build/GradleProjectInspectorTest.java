@@ -45,6 +45,35 @@ class GradleProjectInspectorTest {
     }
 
     @Test
+    void extractsVisibleGroovyGradleCompilerArgs() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-groovy-java21-preview");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.declaredJavaVersion()).isEqualTo("21");
+        assertThat(metadata.compilerArgs()).containsExactly("--enable-preview", "-Xlint:preview");
+    }
+
+    @Test
+    void extractsVisibleKotlinGradleCompilerArgs() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-kotlin-java21-preview");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.declaredJavaVersion()).isEqualTo("21");
+        assertThat(metadata.compilerArgs()).containsExactly("--enable-preview");
+    }
+
+    @Test
+    void ignoresCommentedGradleCompilerArgs() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-kotlin-commented-preview");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.compilerArgs()).isEmpty();
+    }
+
+    @Test
     void rejectsPathsWithoutAGradleBuildFile() {
         var missingPath = Path.of("src", "test", "resources", "fixtures", "missing-gradle-build");
 
