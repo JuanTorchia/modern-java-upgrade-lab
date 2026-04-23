@@ -166,6 +166,57 @@ class DefaultAnalyzerTest {
     }
 
     @Test
+    void reportsThreadLocalAsScopedValuesReviewForJava21To25Migration() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "21",
+                "3.4.4",
+                List.of(),
+                List.of(),
+                List.of(new SourcePattern(
+                        SourcePatternType.THREAD_LOCAL,
+                        Path.of("src/main/java/example/RequestContext.java"),
+                        6,
+                        "private static final ThreadLocal<String> TENANT = new ThreadLocal<>();")));
+        var request = new AnalysisRequest(Path.of("."), 25);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("source-thread-local-src-main-java-example-requestcontext-java-6"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.category()).isEqualTo(FindingCategory.CONCURRENCY);
+                    assertThat(finding.severity()).isEqualTo(FindingSeverity.INFO);
+                    assertThat(finding.title()).isEqualTo("ThreadLocal usage should be reviewed for scoped values");
+                    assertThat(finding.recommendation())
+                            .contains("scoped values on Java 25")
+                            .contains("Do not rewrite automatically");
+                });
+    }
+
+    @Test
+    void doesNotReportThreadLocalAsScopedValuesReviewOutsideJava21To25Migration() {
+        var sourcePatterns = List.of(new SourcePattern(
+                SourcePatternType.THREAD_LOCAL,
+                Path.of("src/main/java/example/RequestContext.java"),
+                6,
+                "private static final ThreadLocal<String> TENANT = new ThreadLocal<>();"));
+        var java17Metadata = new ProjectMetadata("maven", "17", "3.1.12", List.of(), List.of(), sourcePatterns);
+        var java21Metadata = new ProjectMetadata("maven", "21", "3.4.4", List.of(), List.of(), sourcePatterns);
+
+        var java17To25 = new DefaultAnalyzer(java17Metadata).analyze(new AnalysisRequest(Path.of("."), 25));
+        var java21To21 = new DefaultAnalyzer(java21Metadata).analyze(new AnalysisRequest(Path.of("."), 21));
+
+        assertThat(java17To25.findings())
+                .extracting(Finding::id)
+                .doesNotContain("source-thread-local-src-main-java-example-requestcontext-java-6");
+        assertThat(java21To21.findings())
+                .extracting(Finding::id)
+                .doesNotContain("source-thread-local-src-main-java-example-requestcontext-java-6");
+    }
+
+    @Test
     void reportsSourceModernizationFindings() {
         var metadata = new ProjectMetadata(
                 "maven",
