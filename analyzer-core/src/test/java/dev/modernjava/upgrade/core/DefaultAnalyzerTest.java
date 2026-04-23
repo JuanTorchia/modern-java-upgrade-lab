@@ -121,6 +121,51 @@ class DefaultAnalyzerTest {
     }
 
     @Test
+    void reportsJava21To25BaselineReview() {
+        var metadata = new ProjectMetadata(
+                "gradle",
+                "21",
+                "3.4.4",
+                List.of("org.springframework.boot:spring-boot-starter-web"),
+                List.of("org.springframework.boot"));
+        var request = new AnalysisRequest(Path.of("."), 25);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("java-21-to-25-baseline-review"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.category()).isEqualTo(FindingCategory.BASELINE);
+                    assertThat(finding.severity()).isEqualTo(FindingSeverity.INFO);
+                    assertThat(finding.evidence()).isEqualTo("Declared Java version is 21; target Java version is 25");
+                    assertThat(finding.recommendation())
+                            .contains("Establish a Java 25 build and test baseline")
+                            .contains("language")
+                            .contains("runtime")
+                            .contains("GC")
+                            .contains("JFR")
+                            .contains("AOT");
+                });
+    }
+
+    @Test
+    void doesNotReportJava21To25BaselineReviewForOtherTransitions() {
+        var java17Metadata = new ProjectMetadata("maven", "17", "3.1.12", List.of(), List.of());
+        var java21Metadata = new ProjectMetadata("maven", "21", "3.4.4", List.of(), List.of());
+
+        var java17To25 = new DefaultAnalyzer(java17Metadata).analyze(new AnalysisRequest(Path.of("."), 25));
+        var java21To21 = new DefaultAnalyzer(java21Metadata).analyze(new AnalysisRequest(Path.of("."), 21));
+
+        assertThat(java17To25.findings())
+                .extracting(Finding::id)
+                .doesNotContain("java-21-to-25-baseline-review");
+        assertThat(java21To21.findings())
+                .extracting(Finding::id)
+                .doesNotContain("java-21-to-25-baseline-review");
+    }
+
+    @Test
     void reportsSourceModernizationFindings() {
         var metadata = new ProjectMetadata(
                 "maven",
