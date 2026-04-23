@@ -75,6 +75,11 @@ During MVP development, the repository is organized around these current and pla
 - `reports/` - sample generated reports.
 - `docs/` - vision, roadmap, blog ideas, contribution guides, and the engineering log.
 
+Sample reports:
+
+- [Spring Boot 3 Gradle Java 21 to Java 25](reports/sample-spring-boot-3-gradle-java-21-to-java-25.md)
+- [Spring Boot 2 Maven Java 8 to Java 21](reports/sample-spring-boot-2-java-8-to-java-21.md)
+
 ## Contributing
 
 Good first contributions include:
