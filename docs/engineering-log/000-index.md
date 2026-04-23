@@ -22,6 +22,7 @@ The goal is not to maintain a generic changelog. Each entry captures technical d
 - [014 - Java 21 to 25 rule catalog](014-java-21-to-25-rule-catalog.md)
 - [015 - Java 21 to 25 baseline review rule](015-java-21-to-25-baseline-review-rule.md)
 - [016 - ThreadLocal scoped values review rule](016-threadlocal-scoped-values-review-rule.md)
+- [017 - Public documentation audit](017-public-documentation-audit.md)
 
 ## Entry Format
 

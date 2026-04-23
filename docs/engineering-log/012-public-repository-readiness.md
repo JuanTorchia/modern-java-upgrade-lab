@@ -15,7 +15,7 @@ The repository was already public, but that is not the same as being ready for e
 - Rename `docs/bitacora/` to `docs/engineering-log/`.
 - Rename historical engineering log files to English filenames.
 - Rewrite historical engineering log entries in English with a technical tone for experienced Java engineers.
-- Remove internal planning artifacts from `docs/superpowers/` because they were not edited for public readers.
+- Remove internal planning artifacts because they were not edited for public readers.
 - Add a CI badge to the README.
 - Update GitHub Actions from `actions/checkout@v4` and `actions/setup-java@v4` to `v5` to avoid the Node.js 20 deprecation warning shown by GitHub Actions.
 - Create initial GitHub issues for contributors after the documentation cleanup is pushed.
@@ -48,7 +48,7 @@ The public documentation surface is now cleaner:
 I verified this pass with:
 
 ```powershell
-cmd /c "set JAVA_HOME=C:\Users\jstor\.codex\jdks\temurin-25\jdk-25.0.2+10&& set PATH=C:\Users\jstor\.codex\jdks\temurin-25\jdk-25.0.2+10\bin;%PATH%&& mvn test"
+mvn test
 ```
 
 Result: 30 tests passed. Maven still emits the known JDK 25 `sun.misc.Unsafe` warning from Maven/Guice, but the build succeeds.
