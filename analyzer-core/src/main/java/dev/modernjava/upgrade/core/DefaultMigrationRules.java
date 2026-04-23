@@ -14,6 +14,7 @@ public final class DefaultMigrationRules {
         return List.of(
                 DefaultMigrationRules::java8Baseline,
                 DefaultMigrationRules::springBoot2Compatibility,
+                DefaultMigrationRules::springBootJava17To21BaselineReview,
                 DefaultMigrationRules::explicitMavenCompilerPlugin,
                 DefaultMigrationRules::openRewriteMigrationRecipe,
                 DefaultMigrationRules::sourcePatternFindings);
@@ -54,6 +55,28 @@ public final class DefaultMigrationRules {
                 "Validate the project on Spring Boot 2.7.x before the Java "
                         + context.request().targetJavaVersion()
                         + " rollout. Treat Spring Boot 3 as a separate migration because it also introduces Jakarta namespace changes.",
+                null));
+    }
+
+    private static List<Finding> springBootJava17To21BaselineReview(RuleContext context) {
+        var springBootVersion = context.metadata().springBootVersion();
+        if (context.request().targetJavaVersion() != 21
+                || !declaresJava17(context.metadata())
+                || springBootVersion == null
+                || springBootVersion.startsWith("2.")) {
+            return List.of();
+        }
+
+        return List.of(new Finding(
+                "spring-boot-java-17-to-21-baseline-review",
+                FindingCategory.FRAMEWORK,
+                FindingSeverity.INFO,
+                "Spring Boot compatibility",
+                "Spring Boot baseline should be reviewed before a Java 21 rollout",
+                "Declared Java version is " + context.metadata().declaredJavaVersion()
+                        + "; detected Spring Boot " + springBootVersion
+                        + "; target Java version is " + context.request().targetJavaVersion(),
+                "Validate the selected Spring Boot line against Java 21 before runtime rollout. Treat framework upgrades, dependency baselines, and CI runtime changes as explicit migration work rather than language modernization.",
                 null));
     }
 
@@ -175,5 +198,9 @@ public final class DefaultMigrationRules {
 
     private static boolean declaresJava8(ProjectMetadata metadata) {
         return "8".equals(metadata.declaredJavaVersion()) || "1.8".equals(metadata.declaredJavaVersion());
+    }
+
+    private static boolean declaresJava17(ProjectMetadata metadata) {
+        return "17".equals(metadata.declaredJavaVersion());
     }
 }

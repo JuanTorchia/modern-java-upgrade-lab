@@ -76,6 +76,51 @@ class DefaultAnalyzerTest {
     }
 
     @Test
+    void reportsSpringBootBaselineReviewForJava17To21Migration() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "17",
+                "3.1.12",
+                List.of("org.springframework.boot:spring-boot-starter-web"),
+                List.of("org.apache.maven.plugins:maven-compiler-plugin"));
+        var request = new AnalysisRequest(Path.of("."), 21);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains("spring-boot-java-17-to-21-baseline-review");
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("spring-boot-java-17-to-21-baseline-review"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.category()).isEqualTo(FindingCategory.FRAMEWORK);
+                    assertThat(finding.severity()).isEqualTo(FindingSeverity.INFO);
+                    assertThat(finding.evidence()).isEqualTo("Declared Java version is 17; detected Spring Boot 3.1.12; target Java version is 21");
+                    assertThat(finding.recommendation())
+                            .contains("Validate the selected Spring Boot line against Java 21")
+                            .contains("before runtime rollout");
+                });
+    }
+
+    @Test
+    void doesNotReportSpringBootBaselineReviewOutsideJava17To21Migration() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "17",
+                "3.1.12",
+                List.of("org.springframework.boot:spring-boot-starter-web"),
+                List.of("org.apache.maven.plugins:maven-compiler-plugin"));
+        var request = new AnalysisRequest(Path.of("."), 17);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .doesNotContain("spring-boot-java-17-to-21-baseline-review");
+    }
+
+    @Test
     void reportsSourceModernizationFindings() {
         var metadata = new ProjectMetadata(
                 "maven",

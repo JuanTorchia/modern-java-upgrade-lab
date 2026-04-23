@@ -18,6 +18,7 @@ The goal is not to maintain a generic changelog. Each entry captures technical d
 - [010 - CLI MVP closure](010-cli-mvp-closure.md)
 - [011 - English technical documentation baseline](011-english-technical-documentation.md)
 - [012 - Public repository readiness](012-public-repository-readiness.md)
+- [013 - Java 17 to 21 Spring Boot baseline rule](013-java-17-to-21-spring-boot-baseline-rule.md)
 
 ## Entry Format
 
