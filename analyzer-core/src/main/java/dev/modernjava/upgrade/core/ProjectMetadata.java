@@ -9,6 +9,7 @@ public record ProjectMetadata(
         String springBootVersion,
         List<String> dependencies,
         List<String> buildPlugins,
+        List<String> compilerArgs,
         List<SourcePattern> sourcePatterns) {
 
     public ProjectMetadata {
@@ -17,17 +18,23 @@ public record ProjectMetadata(
         springBootVersion = normalizeOptionalText(springBootVersion);
         dependencies = List.copyOf(Objects.requireNonNull(dependencies, "dependencies"));
         buildPlugins = List.copyOf(Objects.requireNonNull(buildPlugins, "buildPlugins"));
+        compilerArgs = List.copyOf(Objects.requireNonNull(compilerArgs, "compilerArgs"));
         sourcePatterns = List.copyOf(Objects.requireNonNull(sourcePatterns, "sourcePatterns"));
     }
 
     public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
             List<String> dependencies, List<String> buildPlugins) {
-        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of());
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of(), List.of());
+    }
+
+    public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
+            List<String> dependencies, List<String> buildPlugins, List<SourcePattern> sourcePatterns) {
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, buildPlugins, List.of(), sourcePatterns);
     }
 
     public ProjectMetadata(String buildTool, String declaredJavaVersion, String springBootVersion,
             List<String> dependencies) {
-        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, List.of(), List.of());
+        this(buildTool, declaredJavaVersion, springBootVersion, dependencies, List.of(), List.of(), List.of());
     }
 
     private static String normalizeOptionalText(String value) {

@@ -111,4 +111,85 @@ class SourcePatternScannerTest {
                 .extracting(SourcePattern::lineNumber)
                 .containsExactly(6);
     }
+
+    @Test
+    void detectsDirectUnsafeUsageOutsideImports() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/UnsafeHolder.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                import sun.misc.Unsafe;
+
+                final class UnsafeHolder {
+                    private static final Unsafe UNSAFE = lookupUnsafe();
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(SourcePatternType.UNSAFE_MEMORY_ACCESS);
+        assertThat(patterns)
+                .extracting(SourcePattern::lineNumber)
+                .containsExactly(6);
+    }
+
+    @Test
+    void ignoresUnsafeImportsWithoutActionableUsage() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/UnsafeImportOnly.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                import sun.misc.Unsafe;
+
+                final class UnsafeImportOnly {
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns).isEmpty();
+    }
+
+    @Test
+    void ignoresUnsafeTextInStringsAndBlockComments() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/UnsafeText.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                final class UnsafeText {
+                    String text = "sun.misc.Unsafe";
+                    /*
+                     * sun.misc.Unsafe unsafe;
+                     */
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns).isEmpty();
+    }
+
+    @Test
+    void ignoresUnsafeTextInTextBlocks() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/UnsafeTextBlock.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                final class UnsafeTextBlock {
+                    String text = \"""
+                            sun.misc.Unsafe
+                            \""";
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns).isEmpty();
+    }
 }

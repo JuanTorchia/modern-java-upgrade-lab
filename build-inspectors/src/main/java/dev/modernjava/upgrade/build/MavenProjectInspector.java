@@ -6,9 +6,11 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
@@ -30,7 +32,9 @@ public final class MavenProjectInspector {
                 detectJavaVersion(model),
                 detectSpringBootVersion(model),
                 collectDependencies(model),
-                collectBuildPlugins(model));
+                collectBuildPlugins(model),
+                collectCompilerArgs(model),
+                List.of());
     }
 
     private static Path resolvePomPath(Path projectPath) {
@@ -164,6 +168,54 @@ public final class MavenProjectInspector {
         return List.copyOf(plugins);
     }
 
+    private static List<String> collectCompilerArgs(Model model) {
+        var build = model.getBuild();
+        if (build == null || build.getPlugins() == null) {
+            return List.of();
+        }
+
+        Set<String> compilerArgs = new LinkedHashSet<>();
+        for (Plugin plugin : build.getPlugins()) {
+            if (!isCompilerPlugin(plugin) || !(plugin.getConfiguration() instanceof Xpp3Dom dom)) {
+                if (isCompilerPlugin(plugin)) {
+                    collectExecutionCompilerArgs(plugin, compilerArgs);
+                }
+                continue;
+            }
+            collectCompilerArgs(dom, compilerArgs);
+            collectExecutionCompilerArgs(plugin, compilerArgs);
+        }
+        return List.copyOf(compilerArgs);
+    }
+
+    private static void collectExecutionCompilerArgs(Plugin plugin, Set<String> compilerArgs) {
+        if (plugin.getExecutions() == null) {
+            return;
+        }
+
+        for (var execution : plugin.getExecutions()) {
+            if (execution.getConfiguration() instanceof Xpp3Dom dom) {
+                collectCompilerArgs(dom, compilerArgs);
+            }
+        }
+    }
+
+    private static void collectCompilerArgs(Xpp3Dom configuration, Set<String> compilerArgs) {
+        var compilerArgsNode = configuration.getChild("compilerArgs");
+        if (compilerArgsNode != null) {
+            for (Xpp3Dom child : compilerArgsNode.getChildren()) {
+                addNonBlank(compilerArgs, child.getValue());
+            }
+        }
+
+        var compilerArgumentNode = configuration.getChild("compilerArgument");
+        if (compilerArgumentNode != null && compilerArgumentNode.getValue() != null) {
+            for (String arg : compilerArgumentNode.getValue().trim().split("\\s+")) {
+                addNonBlank(compilerArgs, arg);
+            }
+        }
+    }
+
     private static String firstNonBlank(Properties properties, String... keys) {
         if (properties == null) {
             return null;
@@ -217,5 +269,11 @@ public final class MavenProjectInspector {
         }
         var normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private static void addNonBlank(Set<String> values, String value) {
+        if (value != null && !value.isBlank()) {
+            values.add(value.trim());
+        }
     }
 }

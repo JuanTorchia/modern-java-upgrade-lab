@@ -217,6 +217,80 @@ class DefaultAnalyzerTest {
     }
 
     @Test
+    void reportsPreviewCompilerArgsAsJava25Boundary() {
+        var metadata = new ProjectMetadata(
+                "gradle",
+                "21",
+                "3.4.4",
+                List.of(),
+                List.of(),
+                List.of("--enable-preview"),
+                List.of());
+        var request = new AnalysisRequest(Path.of("."), 25);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("jdk-25-preview-feature-boundary"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.category()).isEqualTo(FindingCategory.BUILD);
+                    assertThat(finding.severity()).isEqualTo(FindingSeverity.RISK);
+                    assertThat(finding.evidence()).contains("--enable-preview");
+                    assertThat(finding.recommendation())
+                            .contains("explicit technical debt")
+                            .contains("every JDK update");
+                });
+    }
+
+    @Test
+    void doesNotReportPreviewBoundaryOutsideJava21To25Migration() {
+        var metadata = new ProjectMetadata(
+                "gradle",
+                "21",
+                "3.4.4",
+                List.of(),
+                List.of(),
+                List.of("--enable-preview"),
+                List.of());
+
+        var result = new DefaultAnalyzer(metadata).analyze(new AnalysisRequest(Path.of("."), 21));
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .doesNotContain("jdk-25-preview-feature-boundary");
+    }
+
+    @Test
+    void reportsUnsafeUsageForJava21To25Migration() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "21",
+                "3.4.4",
+                List.of(),
+                List.of(),
+                List.of(new SourcePattern(
+                        SourcePatternType.UNSAFE_MEMORY_ACCESS,
+                        Path.of("src/main/java/example/UnsafeHolder.java"),
+                        6,
+                        "private static final Unsafe UNSAFE = lookupUnsafe();")));
+        var request = new AnalysisRequest(Path.of("."), 25);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("source-unsafe-memory-access-src-main-java-example-unsafeholder-java-6"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.category()).isEqualTo(FindingCategory.BUILD);
+                    assertThat(finding.severity()).isEqualTo(FindingSeverity.RISK);
+                    assertThat(finding.recommendation())
+                            .contains("Remove direct unsafe memory-access usage")
+                            .contains("audit dependencies");
+                });
+    }
+
+    @Test
     void reportsSourceModernizationFindings() {
         var metadata = new ProjectMetadata(
                 "maven",

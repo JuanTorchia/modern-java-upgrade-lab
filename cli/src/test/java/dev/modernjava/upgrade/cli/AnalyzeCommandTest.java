@@ -81,6 +81,41 @@ class AnalyzeCommandTest {
     }
 
     @Test
+    void analyzeCommandPreservesCompilerArgsWhenRenderingPreviewBoundary() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        CommandLine commandLine = new CommandLine(new ModernJavaUpgradeLabApp());
+        commandLine.setOut(new PrintWriter(output, true));
+        var buildFile = tempDir.resolve("build.gradle.kts");
+        Files.writeString(buildFile, """
+                plugins {
+                    java
+                }
+
+                java {
+                    toolchain {
+                        languageVersion = JavaLanguageVersion.of(21)
+                    }
+                }
+
+                tasks.withType<JavaCompile>().configureEach {
+                    options.compilerArgs.add("--enable-preview")
+                }
+                """);
+
+        int exitCode = commandLine.execute(
+                "analyze",
+                "--path",
+                tempDir.toString(),
+                "--target",
+                "25");
+
+        assertThat(exitCode).isZero();
+        assertThat(output.toString(StandardCharsets.UTF_8))
+                .contains("Preview feature usage is a Java 25 migration boundary")
+                .contains("--enable-preview");
+    }
+
+    @Test
     void analyzeCommandWritesReportToOutputFile() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         CommandLine commandLine = new CommandLine(new ModernJavaUpgradeLabApp());
