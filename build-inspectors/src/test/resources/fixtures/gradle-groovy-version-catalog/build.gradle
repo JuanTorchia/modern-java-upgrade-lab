@@ -1,0 +1,15 @@
+plugins {
+    id 'java'
+    alias libs.plugins.spring.boot
+    alias libs.plugins.dependency.management
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    implementation libs.spring.boot.starter.web
+    testImplementation libs.bundles.testing
+}

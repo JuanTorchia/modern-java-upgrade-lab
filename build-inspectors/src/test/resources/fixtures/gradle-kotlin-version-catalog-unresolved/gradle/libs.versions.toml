@@ -1,0 +1,5 @@
+[libraries]
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version = "3.3.5" }

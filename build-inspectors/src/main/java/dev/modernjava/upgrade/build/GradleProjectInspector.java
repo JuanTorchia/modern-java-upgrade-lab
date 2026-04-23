@@ -24,6 +24,11 @@ public final class GradleProjectInspector {
     private static final Pattern BARE_JAVA_PLUGIN = Pattern.compile("^\\s*java\\s*$", Pattern.MULTILINE);
     private static final Pattern DEPENDENCY_COORDINATE = Pattern.compile(
             "\\b(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testRuntimeOnly)\\s*(?:\\(\\s*)?['\"]([^:'\"]+:[^:'\"]+)(?::[^'\"]+)?['\"]");
+    private static final Pattern DEPENDENCY_CATALOG_REFERENCE = Pattern.compile(
+            "\\b(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testRuntimeOnly)\\s*(?:\\(\\s*)?"
+                    + "(libs(?:\\.[A-Za-z][A-Za-z0-9_-]*)+)\\b");
+    static final Pattern PLUGIN_CATALOG_REFERENCE = Pattern.compile(
+            "\\balias\\s*(?:\\(\\s*)?(libs\\.plugins(?:\\.[A-Za-z][A-Za-z0-9_-]*)+)\\b");
     private static final Pattern COMPILER_ARGS_LIST = Pattern.compile(
             "compilerArgs\\s*(?:=|\\+=)\\s*(?:listOf\\s*\\(|\\[)(.*?)(?:\\)|\\])",
             Pattern.DOTALL);
@@ -35,13 +40,14 @@ public final class GradleProjectInspector {
     public ProjectMetadata inspect(Path projectPath) {
         var buildFile = resolveBuildFile(Objects.requireNonNull(projectPath, "projectPath"));
         var content = readBuildFile(buildFile);
+        var catalog = GradleVersionCatalog.read(resolveProjectRoot(projectPath, buildFile));
 
         return new ProjectMetadata(
                 "gradle",
                 detectJavaVersion(content),
-                detectSpringBootVersion(content),
-                collectDependencies(content),
-                collectBuildPlugins(content),
+                detectSpringBootVersion(content, catalog),
+                collectDependencies(content, catalog),
+                collectBuildPlugins(content, catalog),
                 collectCompilerArgs(content),
                 List.of());
     }
@@ -70,6 +76,13 @@ public final class GradleProjectInspector {
         return "build.gradle".equals(fileName) || "build.gradle.kts".equals(fileName);
     }
 
+    private static Path resolveProjectRoot(Path projectPath, Path buildFile) {
+        if (Files.isRegularFile(projectPath) && isGradleBuildFile(projectPath)) {
+            return buildFile.toAbsolutePath().normalize().getParent();
+        }
+        return projectPath.toAbsolutePath().normalize();
+    }
+
     private static String readBuildFile(Path buildFile) {
         try {
             return Files.readString(buildFile);
@@ -90,20 +103,30 @@ public final class GradleProjectInspector {
         return version == null ? "unknown" : version;
     }
 
-    private static String detectSpringBootVersion(String content) {
-        return firstMatch(content, SPRING_BOOT_PLUGIN);
+    private static String detectSpringBootVersion(String content, GradleVersionCatalog catalog) {
+        var directVersion = firstMatch(content, SPRING_BOOT_PLUGIN);
+        return directVersion == null ? catalog.springBootVersion(content) : directVersion;
     }
 
-    private static List<String> collectDependencies(String content) {
-        return collectMatches(content, DEPENDENCY_COORDINATE);
+    private static List<String> collectDependencies(String content, GradleVersionCatalog catalog) {
+        var dependencies = new LinkedHashSet<>(collectMatches(content, DEPENDENCY_COORDINATE));
+        var matcher = DEPENDENCY_CATALOG_REFERENCE.matcher(content);
+        while (matcher.find()) {
+            catalog.addDependencies(matcher.group(1), dependencies);
+        }
+        return List.copyOf(dependencies);
     }
 
-    private static List<String> collectBuildPlugins(String content) {
+    private static List<String> collectBuildPlugins(String content, GradleVersionCatalog catalog) {
         var plugins = new LinkedHashSet<String>();
         plugins.addAll(collectMatches(content, GROOVY_PLUGIN_ID));
         plugins.addAll(collectMatches(content, KOTLIN_PLUGIN_ID));
         if (BARE_JAVA_PLUGIN.matcher(content).find()) {
             plugins.add("java");
+        }
+        var matcher = PLUGIN_CATALOG_REFERENCE.matcher(content);
+        while (matcher.find()) {
+            catalog.addPlugin(matcher.group(1), plugins);
         }
         return List.copyOf(plugins);
     }

@@ -45,6 +45,66 @@ class GradleProjectInspectorTest {
     }
 
     @Test
+    void resolvesKotlinVersionCatalogPluginLibraryAndBundleAliases() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-kotlin-version-catalog");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.buildTool()).isEqualTo("gradle");
+        assertThat(metadata.declaredJavaVersion()).isEqualTo("21");
+        assertThat(metadata.springBootVersion()).isEqualTo("3.3.5");
+        assertThat(metadata.dependencies()).containsExactly(
+                "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.boot:spring-boot-starter-test",
+                "org.assertj:assertj-core");
+        assertThat(metadata.buildPlugins()).contains(
+                "java",
+                "org.springframework.boot",
+                "io.spring.dependency-management");
+    }
+
+    @Test
+    void resolvesGroovyVersionCatalogPluginLibraryAndBundleAliases() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-groovy-version-catalog");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.buildTool()).isEqualTo("gradle");
+        assertThat(metadata.declaredJavaVersion()).isEqualTo("17");
+        assertThat(metadata.springBootVersion()).isEqualTo("2.7.18");
+        assertThat(metadata.dependencies()).containsExactly(
+                "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.boot:spring-boot-starter-test",
+                "org.assertj:assertj-core");
+        assertThat(metadata.buildPlugins()).contains(
+                "java",
+                "org.springframework.boot",
+                "io.spring.dependency-management");
+    }
+
+    @Test
+    void ignoresUnresolvedVersionCatalogAliases() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-kotlin-version-catalog-unresolved");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.dependencies()).containsExactly("org.springframework.boot:spring-boot-starter-web");
+        assertThat(metadata.buildPlugins()).containsExactly("java");
+    }
+
+    @Test
+    void keepsVisibleBuildFileInspectionWhenVersionCatalogIsMalformed() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-kotlin-malformed-version-catalog");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.declaredJavaVersion()).isEqualTo("21");
+        assertThat(metadata.springBootVersion()).isEqualTo("3.3.5");
+        assertThat(metadata.dependencies()).containsExactly("org.springframework.boot:spring-boot-starter-web");
+        assertThat(metadata.buildPlugins()).contains("java", "org.springframework.boot");
+    }
+
+    @Test
     void extractsVisibleGroovyGradleCompilerArgs() {
         var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-groovy-java21-preview");
 
