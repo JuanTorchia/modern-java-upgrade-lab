@@ -52,7 +52,10 @@ class DefaultAnalyzerTest {
 
         var result = new DefaultAnalyzer(metadata).analyze(request);
 
-        assertThat(result.findings()).isEmpty();
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .containsExactly("java-8-to-11-baseline");
+        assertThat(result.riskAssessment().level()).isEqualTo(RiskLevel.MEDIUM);
     }
 
     @Test
@@ -73,6 +76,49 @@ class DefaultAnalyzerTest {
         assertThat(result.findings())
                 .extracting(Finding::title)
                 .contains("OpenRewrite has a Java 21 migration recipe");
+    }
+
+    @Test
+    void assignsHighRiskWhenJava11SpringBoot25TargetsJava21() {
+        var metadata = new ProjectMetadata(
+                "gradle",
+                "11",
+                "2.5.2",
+                List.of("org.springframework.boot:spring-boot-starter-web"),
+                List.of("org.springframework.boot"),
+                List.of(),
+                List.of(),
+                List.of(
+                        new DependencyBaseline("Build tool", "Gradle wrapper", "6.8.3", "gradle/wrapper/gradle-wrapper.properties"),
+                        new DependencyBaseline("Runtime image", "Jib base image", "openjdk:11.0.10-jre-buster", "build.gradle")),
+                List.of());
+
+        var result = new DefaultAnalyzer(metadata).analyze(new AnalysisRequest(Path.of("."), 21));
+
+        assertThat(result.riskAssessment().level()).isEqualTo(RiskLevel.HIGH);
+        assertThat(result.riskAssessment().score()).isGreaterThanOrEqualTo(60);
+        assertThat(result.riskAssessment().reasons())
+                .contains(
+                        "Declared Java 11 targets Java 21",
+                        "Spring Boot 2.5.2 is below the safer 2.7.x Java 21 staging baseline",
+                        "Gradle wrapper 6.8.3 should be validated before Java 21 builds",
+                        "Runtime image still references Java 11");
+    }
+
+    @Test
+    void assignsLowRiskWhenProjectIsAlreadyAtTargetWithoutRiskFindings() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "21",
+                "3.3.5",
+                List.of("org.springframework.boot:spring-boot-starter-web"),
+                List.of("org.apache.maven.plugins:maven-compiler-plugin"));
+
+        var result = new DefaultAnalyzer(metadata).analyze(new AnalysisRequest(Path.of("."), 21));
+
+        assertThat(result.riskAssessment().level()).isEqualTo(RiskLevel.LOW);
+        assertThat(result.riskAssessment().score()).isZero();
+        assertThat(result.riskAssessment().reasons()).containsExactly("No migration risk signals crossed the scoring threshold");
     }
 
     @Test
@@ -377,5 +423,138 @@ class DefaultAnalyzerTest {
                 .contains(
                         "Map-based response can be reviewed as an explicit DTO or record",
                         "Executor factory usage should be reviewed before adopting virtual threads");
+    }
+
+    @Test
+    void reportsJava8To11RemovedJavaEeApiRisk() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "8",
+                "2.7.18",
+                List.of(),
+                List.of(),
+                List.of(new SourcePattern(
+                        SourcePatternType.JAVA_EE_REMOVED_API,
+                        Path.of("src/main/java/example/XmlBinding.java"),
+                        3,
+                        "import javax.xml.bind.JAXBContext;")));
+
+        var result = new DefaultAnalyzer(metadata).analyze(new AnalysisRequest(Path.of("."), 11));
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains("java-8-to-11-baseline", "java-8-to-11-removed-java-ee-api");
+        assertThat(result.riskAssessment().level()).isEqualTo(RiskLevel.MEDIUM);
+    }
+
+    @Test
+    void reportsJava8To11JdkInternalApiRisk() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "8",
+                "2.7.18",
+                List.of(),
+                List.of(),
+                List.of(new SourcePattern(
+                        SourcePatternType.JDK_INTERNAL_API,
+                        Path.of("src/main/java/example/InternalAccess.java"),
+                        8,
+                        "Object cleaner = sun.misc.SharedSecrets.getJavaLangAccess();")));
+
+        var result = new DefaultAnalyzer(metadata).analyze(new AnalysisRequest(Path.of("."), 11));
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains("java-8-to-11-jdk-internal-api");
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("java-8-to-11-jdk-internal-api"))
+                .singleElement()
+                .extracting(Finding::severity)
+                .isEqualTo(FindingSeverity.RISK);
+    }
+
+    @Test
+    void reportsJava8To11ReflectiveAccessRisk() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "8",
+                "2.7.18",
+                List.of(),
+                List.of(),
+                List.of(new SourcePattern(
+                        SourcePatternType.REFLECTIVE_ACCESS,
+                        Path.of("src/main/java/example/ReflectionAccess.java"),
+                        12,
+                        "field.setAccessible(true);")));
+
+        var result = new DefaultAnalyzer(metadata).analyze(new AnalysisRequest(Path.of("."), 11));
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains("java-8-to-11-reflective-access");
+    }
+
+    @Test
+    void keepsJava21To25RulesSeparateFromJava8To11Rules() {
+        var metadata = new ProjectMetadata(
+                "maven",
+                "21",
+                "3.4.4",
+                List.of(),
+                List.of(),
+                List.of(new SourcePattern(
+                        SourcePatternType.THREAD_LOCAL,
+                        Path.of("src/main/java/example/RequestContext.java"),
+                        6,
+                        "private static final ThreadLocal<String> TENANT = new ThreadLocal<>();")));
+
+        var result = new DefaultAnalyzer(metadata).analyze(new AnalysisRequest(Path.of("."), 25));
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains("source-thread-local-src-main-java-example-requestcontext-java-6")
+                .doesNotContain(
+                        "java-8-to-11-baseline",
+                        "java-8-to-11-removed-java-ee-api",
+                        "java-8-to-11-reflective-access");
+    }
+
+    @Test
+    void summarizesRepeatedMapStringObjectFindings() {
+        var metadata = new ProjectMetadata(
+                "gradle",
+                "11",
+                "2.6.3",
+                List.of(),
+                List.of(),
+                List.of(
+                        new SourcePattern(SourcePatternType.MAP_STRING_OBJECT, Path.of("src/main/java/example/Api1.java"), 10, "Map<String, Object> response1() {"),
+                        new SourcePattern(SourcePatternType.MAP_STRING_OBJECT, Path.of("src/main/java/example/Api2.java"), 20, "Map<String, Object> response2() {"),
+                        new SourcePattern(SourcePatternType.MAP_STRING_OBJECT, Path.of("src/main/java/example/Api3.java"), 30, "Map<String, Object> response3() {"),
+                        new SourcePattern(SourcePatternType.MAP_STRING_OBJECT, Path.of("src/main/java/example/Api4.java"), 40, "Map<String, Object> response4() {")));
+        var request = new AnalysisRequest(Path.of("."), 21);
+
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        assertThat(result.findings())
+                .extracting(Finding::id)
+                .contains("source-map-string-object-summary")
+                .doesNotContain(
+                        "source-map-string-object-src-main-java-example-api1-java-10",
+                        "source-map-string-object-src-main-java-example-api4-java-40");
+        assertThat(result.findings())
+                .filteredOn(finding -> finding.id().equals("source-map-string-object-summary"))
+                .singleElement()
+                .satisfies(finding -> {
+                    assertThat(finding.category()).isEqualTo(FindingCategory.LANGUAGE);
+                    assertThat(finding.title()).isEqualTo("Map-based responses can be reviewed as explicit DTOs or records");
+                    assertThat(finding.evidence())
+                            .contains("Detected 4 occurrences")
+                            .contains("Api1.java:10")
+                            .contains("Api2.java:20")
+                            .contains("Api3.java:30")
+                            .doesNotContain("Api4.java:40");
+                    assertThat(finding.recommendation()).contains("Review the repeated response-shape pattern");
+                });
     }
 }

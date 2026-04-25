@@ -1,5 +1,6 @@
 package dev.modernjava.upgrade.build;
 
+import dev.modernjava.upgrade.core.DependencyBaseline;
 import dev.modernjava.upgrade.core.ProjectMetadata;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -19,6 +20,10 @@ public final class GradleProjectInspector {
             "(?:sourceCompatibility|targetCompatibility)\\s*=\\s*['\"]?(?:1\\.)?(\\d+)['\"]?");
     private static final Pattern SPRING_BOOT_PLUGIN = Pattern.compile(
             "id\\s*(?:\\(\\s*)?['\"]org\\.springframework\\.boot['\"]\\s*\\)?\\s+version\\s+['\"]([^'\"]+)['\"]");
+    private static final Pattern GROOVY_PLUGIN_WITH_VERSION = Pattern.compile(
+            "id\\s+['\"]([^'\"]+)['\"]\\s+version\\s+['\"]([^'\"]+)['\"]");
+    private static final Pattern KOTLIN_PLUGIN_WITH_VERSION = Pattern.compile(
+            "id\\s*\\(\\s*['\"]([^'\"]+)['\"]\\s*\\)\\s+version\\s+['\"]([^'\"]+)['\"]");
     private static final Pattern GROOVY_PLUGIN_ID = Pattern.compile("id\\s+['\"]([^'\"]+)['\"]");
     private static final Pattern KOTLIN_PLUGIN_ID = Pattern.compile("id\\s*\\(\\s*['\"]([^'\"]+)['\"]\\s*\\)");
     private static final Pattern BARE_JAVA_PLUGIN = Pattern.compile("^\\s*java\\s*$", Pattern.MULTILINE);
@@ -27,8 +32,15 @@ public final class GradleProjectInspector {
     private static final Pattern DEPENDENCY_CATALOG_REFERENCE = Pattern.compile(
             "\\b(?:implementation|api|compileOnly|runtimeOnly|testImplementation|testRuntimeOnly)\\s*(?:\\(\\s*)?"
                     + "(libs(?:\\.[A-Za-z][A-Za-z0-9_-]*)+)\\b");
+    private static final Pattern DEPENDENCY_WITH_VERSION = Pattern.compile(
+            "\\b(implementation|api|compileOnly|runtimeOnly|testImplementation|testRuntimeOnly)\\s*(?:\\(\\s*)?"
+                    + "['\"]([^:'\"]+:[^:'\"]+):([^'\"]+)['\"]");
     static final Pattern PLUGIN_CATALOG_REFERENCE = Pattern.compile(
             "\\balias\\s*(?:\\(\\s*)?(libs\\.plugins(?:\\.[A-Za-z][A-Za-z0-9_-]*)+)\\b");
+    private static final Pattern JIB_FROM_IMAGE = Pattern.compile(
+            "\\bfrom\\s*\\{.*?\\bimage\\s*=\\s*['\"]([^'\"]+)['\"].*?\\}",
+            Pattern.DOTALL);
+    private static final Pattern GRADLE_DISTRIBUTION = Pattern.compile("gradle-(\\d+(?:\\.\\d+)+)-");
     private static final Pattern COMPILER_ARGS_LIST = Pattern.compile(
             "compilerArgs\\s*(?:=|\\+=)\\s*(?:listOf\\s*\\(|\\[)(.*?)(?:\\)|\\])",
             Pattern.DOTALL);
@@ -40,7 +52,8 @@ public final class GradleProjectInspector {
     public ProjectMetadata inspect(Path projectPath) {
         var buildFile = resolveBuildFile(Objects.requireNonNull(projectPath, "projectPath"));
         var content = readBuildFile(buildFile);
-        var catalog = GradleVersionCatalog.read(resolveProjectRoot(projectPath, buildFile));
+        var projectRoot = resolveProjectRoot(projectPath, buildFile);
+        var catalog = GradleVersionCatalog.read(projectRoot);
 
         return new ProjectMetadata(
                 "gradle",
@@ -50,6 +63,7 @@ public final class GradleProjectInspector {
                 collectBuildPlugins(content, catalog),
                 collectCompilerArgs(content),
                 List.of(),
+                collectDependencyBaselines(content, projectRoot, buildFile.getFileName().toString()),
                 catalog.diagnostics());
     }
 
@@ -85,11 +99,15 @@ public final class GradleProjectInspector {
     }
 
     private static String readBuildFile(Path buildFile) {
+        return readText(buildFile);
+    }
+
+    private static String readText(Path path) {
         try {
-            return Files.readString(buildFile);
+            return Files.readString(path);
         } catch (IOException exception) {
-            throw new UncheckedIOException("Failed to read Gradle build file from "
-                    + buildFile.toAbsolutePath().normalize(), exception);
+            throw new UncheckedIOException("Failed to read Gradle file from "
+                    + path.toAbsolutePath().normalize(), exception);
         }
     }
 
@@ -138,6 +156,81 @@ public final class GradleProjectInspector {
         collectQuotedMatches(uncommentedContent, COMPILER_ARGS_LIST, compilerArgs);
         collectQuotedMatches(uncommentedContent, COMPILER_ARGS_METHOD, compilerArgs);
         return List.copyOf(compilerArgs);
+    }
+
+    private static List<DependencyBaseline> collectDependencyBaselines(
+            String content, Path projectRoot, String buildFileName) {
+        var baselines = new LinkedHashSet<DependencyBaseline>();
+        addGradleWrapperBaseline(projectRoot, baselines);
+        addPluginBaselines(content, buildFileName, baselines);
+        addDependencyVersionBaselines(content, buildFileName, baselines);
+        addJibBaseImageBaseline(content, buildFileName, baselines);
+        return List.copyOf(baselines);
+    }
+
+    private static void addGradleWrapperBaseline(Path projectRoot, Set<DependencyBaseline> baselines) {
+        var wrapperPath = projectRoot.resolve("gradle").resolve("wrapper").resolve("gradle-wrapper.properties");
+        if (!Files.isRegularFile(wrapperPath)) {
+            return;
+        }
+
+        var matcher = GRADLE_DISTRIBUTION.matcher(readText(wrapperPath));
+        if (matcher.find()) {
+            baselines.add(new DependencyBaseline(
+                    "Build tool",
+                    "Gradle wrapper",
+                    matcher.group(1),
+                    "gradle/wrapper/gradle-wrapper.properties"));
+        }
+    }
+
+    private static void addPluginBaselines(String content, String evidence, Set<DependencyBaseline> baselines) {
+        addPluginBaselines(content, evidence, baselines, GROOVY_PLUGIN_WITH_VERSION);
+        addPluginBaselines(content, evidence, baselines, KOTLIN_PLUGIN_WITH_VERSION);
+    }
+
+    private static void addPluginBaselines(
+            String content, String evidence, Set<DependencyBaseline> baselines, Pattern pattern) {
+        var matcher = pattern.matcher(content);
+        while (matcher.find()) {
+            baselines.add(new DependencyBaseline(
+                    "Build plugin",
+                    matcher.group(1),
+                    matcher.group(2),
+                    evidence));
+        }
+    }
+
+    private static void addDependencyVersionBaselines(String content, String evidence, Set<DependencyBaseline> baselines) {
+        var matcher = DEPENDENCY_WITH_VERSION.matcher(content);
+        while (matcher.find()) {
+            baselines.add(new DependencyBaseline(
+                    dependencyBaselineCategory(matcher.group(1)),
+                    matcher.group(2),
+                    matcher.group(3),
+                    evidence));
+        }
+    }
+
+    private static String dependencyBaselineCategory(String configuration) {
+        if (configuration.startsWith("test")) {
+            return "Test dependency";
+        }
+        if ("runtimeOnly".equals(configuration)) {
+            return "Runtime dependency";
+        }
+        return "Application dependency";
+    }
+
+    private static void addJibBaseImageBaseline(String content, String evidence, Set<DependencyBaseline> baselines) {
+        var matcher = JIB_FROM_IMAGE.matcher(content);
+        if (matcher.find()) {
+            baselines.add(new DependencyBaseline(
+                    "Runtime image",
+                    "Jib base image",
+                    matcher.group(1),
+                    evidence));
+        }
     }
 
     private static String firstMatch(String content, Pattern pattern) {

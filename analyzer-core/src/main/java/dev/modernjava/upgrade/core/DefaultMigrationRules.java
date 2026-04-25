@@ -2,6 +2,7 @@ package dev.modernjava.upgrade.core;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 public final class DefaultMigrationRules {
 
@@ -12,14 +13,35 @@ public final class DefaultMigrationRules {
 
     public static List<MigrationRule> defaults() {
         return List.of(
+                DefaultMigrationRules::java8To11Baseline,
                 DefaultMigrationRules::java8Baseline,
                 DefaultMigrationRules::java21To25BaselineReview,
                 DefaultMigrationRules::springBoot2Compatibility,
                 DefaultMigrationRules::springBootJava17To21BaselineReview,
+                DefaultMigrationRules::legacyTestPluginBaseline,
+                DefaultMigrationRules::legacyDependencyBaseline,
+                DefaultMigrationRules::runtimeBaseline,
                 DefaultMigrationRules::explicitMavenCompilerPlugin,
                 DefaultMigrationRules::java25PreviewFeatureBoundary,
                 DefaultMigrationRules::openRewriteMigrationRecipe,
                 DefaultMigrationRules::sourcePatternFindings);
+    }
+
+    private static List<Finding> java8To11Baseline(RuleContext context) {
+        if (!isJava8To11(context)) {
+            return List.of();
+        }
+
+        return List.of(new Finding(
+                "java-8-to-11-baseline",
+                FindingCategory.BASELINE,
+                FindingSeverity.INFO,
+                "Java baseline",
+                "Java 8 to 11 migration needs a compatibility baseline",
+                "Declared Java version is " + context.metadata().declaredJavaVersion()
+                        + "; target Java version is " + context.request().targetJavaVersion(),
+                "Run the full test suite on Java 8, then establish a separate Java 11 branch that validates removed Java EE modules, reflection warnings, build plugins, and runtime images.",
+                null));
     }
 
     private static List<Finding> java8Baseline(RuleContext context) {
@@ -119,6 +141,68 @@ public final class DefaultMigrationRules {
                 null));
     }
 
+    private static List<Finding> legacyTestPluginBaseline(RuleContext context) {
+        if (context.request().targetJavaVersion() < 11) {
+            return List.of();
+        }
+
+        return context.metadata().dependencyBaselines().stream()
+                .filter(baseline -> isTestPlugin(baseline.name()))
+                .filter(baseline -> isOlderThanMajor(baseline.version(), 3))
+                .map(baseline -> new Finding(
+                        "java-8-to-11-test-plugin-baseline-" + findingToken(baseline.name()),
+                        FindingCategory.BUILD,
+                        FindingSeverity.RISK,
+                        "Test runtime",
+                        displayArtifact(baseline.name()) + " should be upgraded before Java "
+                                + context.request().targetJavaVersion() + " test baselining",
+                        "Detected " + baseline.name() + " " + baseline.version() + " in " + baseline.evidence(),
+                        "Upgrade Surefire/Failsafe to a Java "
+                                + context.request().targetJavaVersion()
+                                + " compatible baseline before trusting migration test results.",
+                        null))
+                .toList();
+    }
+
+    private static List<Finding> legacyDependencyBaseline(RuleContext context) {
+        if (context.request().targetJavaVersion() < 17) {
+            return List.of();
+        }
+
+        return context.metadata().dependencyBaselines().stream()
+                .filter(DefaultMigrationRules::isKnownBytecodeSensitiveDependency)
+                .filter(baseline -> isOlderThanMajor(baseline.version(), minimumMajorFor(baseline.name())))
+                .map(baseline -> new Finding(
+                        "legacy-dependency-" + findingToken(baseline.name()),
+                        FindingCategory.BUILD,
+                        FindingSeverity.RISK,
+                        "Dependency compatibility",
+                        displayArtifact(baseline.name()) + " baseline should be reviewed before Java "
+                                + context.request().targetJavaVersion(),
+                        "Detected " + baseline.name() + " " + baseline.version() + " in " + baseline.evidence(),
+                        "Validate this dependency against the target JDK and upgrade it in a dedicated build-readiness branch.",
+                        null))
+                .toList();
+    }
+
+    private static List<Finding> runtimeBaseline(RuleContext context) {
+        return context.metadata().dependencyBaselines().stream()
+                .filter(baseline -> "Runtime image".equals(baseline.category()))
+                .filter(baseline -> imageMajor(baseline.version()) > 0
+                        && imageMajor(baseline.version()) != context.request().targetJavaVersion())
+                .map(baseline -> new Finding(
+                        "runtime-image-target-mismatch",
+                        FindingCategory.BUILD,
+                        FindingSeverity.RISK,
+                        "Runtime image",
+                        "Runtime image should match the requested Java " + context.request().targetJavaVersion()
+                                + " rollout",
+                        "Detected runtime image " + baseline.version() + " in " + baseline.evidence(),
+                        "Update container/runtime images separately from source changes and verify rollback to the previous runtime.",
+                        null))
+                .toList();
+    }
+
     private static List<Finding> java25PreviewFeatureBoundary(RuleContext context) {
         if (context.request().targetJavaVersion() != 25 || !declaresJava21(context.metadata())) {
             return List.of();
@@ -168,16 +252,29 @@ public final class DefaultMigrationRules {
     }
 
     private static List<Finding> sourcePatternFindings(RuleContext context) {
-        return context.metadata().sourcePatterns().stream()
+        var reportablePatterns = context.metadata().sourcePatterns().stream()
                 .filter(pattern -> shouldReportSourcePattern(context, pattern))
+                .toList();
+        var mapPatterns = reportablePatterns.stream()
+                .filter(pattern -> pattern.type() == SourcePatternType.MAP_STRING_OBJECT)
+                .toList();
+        var nonMapFindings = reportablePatterns.stream()
+                .filter(pattern -> pattern.type() != SourcePatternType.MAP_STRING_OBJECT)
                 .map(pattern -> switch (pattern.type()) {
-                    case MAP_STRING_OBJECT -> mapStringObjectFinding(pattern);
+                    case MAP_STRING_OBJECT -> throw new IllegalStateException("Map patterns are handled separately");
                     case SIMPLE_DATE_FORMAT -> simpleDateFormatFinding(pattern);
                     case EXECUTOR_FACTORY -> executorFactoryFinding(pattern);
                     case THREAD_LOCAL -> threadLocalFinding(pattern);
                     case STRUCTURED_CONCURRENCY_PREVIEW -> structuredConcurrencyPreviewFinding(pattern);
                     case UNSAFE_MEMORY_ACCESS -> unsafeMemoryAccessFinding(pattern);
-                })
+                    case JAVA_EE_REMOVED_API -> javaEeRemovedApiFinding(pattern);
+                    case JDK_INTERNAL_API -> jdkInternalApiFinding(pattern);
+                    case REFLECTIVE_ACCESS -> reflectiveAccessFinding(pattern);
+                    case SECURITY_MANAGER_USAGE -> securityManagerUsageFinding(pattern);
+                    case FINALIZATION_USAGE -> finalizationUsageFinding(pattern);
+                });
+
+        return Stream.concat(mapStringObjectFindings(mapPatterns).stream(), nonMapFindings)
                 .toList();
     }
 
@@ -188,6 +285,8 @@ public final class DefaultMigrationRules {
             case THREAD_LOCAL -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
             case STRUCTURED_CONCURRENCY_PREVIEW -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
             case UNSAFE_MEMORY_ACCESS -> declaresJava21(context.metadata()) && context.request().targetJavaVersion() == 25;
+            case JAVA_EE_REMOVED_API, JDK_INTERNAL_API, REFLECTIVE_ACCESS, SECURITY_MANAGER_USAGE,
+                    FINALIZATION_USAGE -> isJava8To11(context) || targetsJava17OrLater(context);
         };
     }
 
@@ -201,6 +300,28 @@ public final class DefaultMigrationRules {
                 sourceEvidence(pattern),
                 "Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.",
                 null);
+    }
+
+    private static List<Finding> mapStringObjectFindings(List<SourcePattern> patterns) {
+        if (patterns.size() <= 3) {
+            return patterns.stream()
+                    .map(DefaultMigrationRules::mapStringObjectFinding)
+                    .toList();
+        }
+
+        var examples = patterns.stream()
+                .limit(3)
+                .map(DefaultMigrationRules::sourceLocation)
+                .toList();
+        return List.of(new Finding(
+                "source-map-string-object-summary",
+                FindingCategory.LANGUAGE,
+                FindingSeverity.INFO,
+                "Language modernization",
+                "Map-based responses can be reviewed as explicit DTOs or records",
+                "Detected " + patterns.size() + " occurrences; examples: " + String.join("; ", examples),
+                "Review the repeated response-shape pattern. Start by modeling the most stable API responses as DTOs and consider records after the migration baseline is stable.",
+                null));
     }
 
     private static Finding simpleDateFormatFinding(SourcePattern pattern) {
@@ -263,8 +384,72 @@ public final class DefaultMigrationRules {
                 null);
     }
 
+    private static Finding javaEeRemovedApiFinding(SourcePattern pattern) {
+        return new Finding(
+                "java-8-to-11-removed-java-ee-api",
+                FindingCategory.BUILD,
+                FindingSeverity.RISK,
+                "Removed Java EE modules",
+                "Removed Java EE/JAXB API usage blocks a clean Java 11 migration",
+                sourceEvidence(pattern),
+                "Add explicit dependencies or migrate the affected API before moving the runtime to Java 11.",
+                null);
+    }
+
+    private static Finding jdkInternalApiFinding(SourcePattern pattern) {
+        return new Finding(
+                "java-8-to-11-jdk-internal-api",
+                FindingCategory.BUILD,
+                FindingSeverity.RISK,
+                "JDK internals",
+                "JDK internal API usage should be removed before Java 11+ migration",
+                sourceEvidence(pattern),
+                "Replace internal JDK API usage with supported APIs or isolate the dependency that requires it.",
+                null);
+    }
+
+    private static Finding reflectiveAccessFinding(SourcePattern pattern) {
+        return new Finding(
+                "java-8-to-11-reflective-access",
+                FindingCategory.BUILD,
+                FindingSeverity.RISK,
+                "Illegal reflective access",
+                "Reflective access should be reviewed before Java 11+ migration",
+                sourceEvidence(pattern),
+                "Run tests on Java 11 with warnings enabled and remove or explicitly contain illegal reflective access.",
+                null);
+    }
+
+    private static Finding securityManagerUsageFinding(SourcePattern pattern) {
+        return new Finding(
+                "java-8-to-11-security-manager-usage",
+                FindingCategory.BUILD,
+                FindingSeverity.INFO,
+                "Security Manager",
+                "SecurityManager usage should be reviewed during Java migration planning",
+                sourceEvidence(pattern),
+                "Document whether this code path is still active and plan removal before newer JDK rollouts.",
+                null);
+    }
+
+    private static Finding finalizationUsageFinding(SourcePattern pattern) {
+        return new Finding(
+                "java-8-to-11-finalization-usage",
+                FindingCategory.LANGUAGE,
+                FindingSeverity.INFO,
+                "Finalization",
+                "finalize() usage should be removed during migration hardening",
+                sourceEvidence(pattern),
+                "Replace finalization with explicit lifecycle management or Cleaner after the runtime baseline is stable.",
+                null);
+    }
+
     private static String sourceEvidence(SourcePattern pattern) {
         return pattern.relativePath() + ":" + pattern.lineNumber() + " contains `" + pattern.evidence() + "`";
+    }
+
+    private static String sourceLocation(SourcePattern pattern) {
+        return pattern.relativePath() + ":" + pattern.lineNumber();
     }
 
     private static String sourceFindingId(SourcePattern pattern) {
@@ -283,6 +468,10 @@ public final class DefaultMigrationRules {
         return context.request().targetJavaVersion() >= 17;
     }
 
+    private static boolean isJava8To11(RuleContext context) {
+        return context.request().targetJavaVersion() == 11 && declaresJava8(context.metadata());
+    }
+
     private static boolean declaresJava8(ProjectMetadata metadata) {
         return "8".equals(metadata.declaredJavaVersion()) || "1.8".equals(metadata.declaredJavaVersion());
     }
@@ -293,5 +482,60 @@ public final class DefaultMigrationRules {
 
     private static boolean declaresJava21(ProjectMetadata metadata) {
         return "21".equals(metadata.declaredJavaVersion());
+    }
+
+    private static boolean isTestPlugin(String name) {
+        return "org.apache.maven.plugins:maven-surefire-plugin".equals(name)
+                || "org.apache.maven.plugins:maven-failsafe-plugin".equals(name);
+    }
+
+    private static boolean isKnownBytecodeSensitiveDependency(DependencyBaseline baseline) {
+        return "org.projectlombok:lombok".equals(baseline.name())
+                || "org.mockito:mockito-core".equals(baseline.name())
+                || "org.mockito:mockito-inline".equals(baseline.name())
+                || "net.bytebuddy:byte-buddy".equals(baseline.name());
+    }
+
+    private static int minimumMajorFor(String artifact) {
+        if (artifact.startsWith("org.mockito:")) {
+            return 4;
+        }
+        return 1;
+    }
+
+    private static boolean isOlderThanMajor(String version, int major) {
+        var parsed = firstVersionNumber(version);
+        return parsed >= 0 && parsed < major;
+    }
+
+    private static int imageMajor(String value) {
+        if (value == null) {
+            return -1;
+        }
+        for (int version : List.of(25, 21, 17, 11, 8)) {
+            if (value.contains(String.valueOf(version))) {
+                return version;
+            }
+        }
+        return -1;
+    }
+
+    private static int firstVersionNumber(String version) {
+        if (version == null || version.isBlank()) {
+            return -1;
+        }
+        var matcher = java.util.regex.Pattern.compile("\\d+").matcher(version);
+        return matcher.find() ? Integer.parseInt(matcher.group()) : -1;
+    }
+
+    private static String findingToken(String value) {
+        return value.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-|-$", "");
+    }
+
+    private static String displayArtifact(String artifact) {
+        var index = artifact.lastIndexOf(':');
+        return index >= 0 ? artifact.substring(index + 1) : artifact;
     }
 }

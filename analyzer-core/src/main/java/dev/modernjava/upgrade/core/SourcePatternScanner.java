@@ -20,6 +20,14 @@ import java.util.regex.Pattern;
 public final class SourcePatternScanner {
 
     private static final Pattern UNSAFE_SIMPLE_NAME = Pattern.compile("\\bUnsafe\\b");
+    private static final Pattern JAVA_EE_REMOVED_API = Pattern.compile(
+            "\\b(?:javax\\.xml\\.bind|javax\\.activation|javax\\.annotation|javax\\.xml\\.ws|javax\\.jws)\\b");
+    private static final Pattern JDK_INTERNAL_API = Pattern.compile("\\b(?:sun\\.misc|com\\.sun|jdk\\.internal)\\b");
+    private static final Pattern REFLECTIVE_ACCESS = Pattern.compile(
+            "\\b(?:setAccessible\\s*\\(\\s*true\\s*\\)|Class\\.forName\\s*\\()");
+    private static final Pattern SECURITY_MANAGER_USAGE = Pattern.compile(
+            "\\b(?:System\\.getSecurityManager\\s*\\(|SecurityManager\\b)");
+    private static final Pattern FINALIZATION_USAGE = Pattern.compile("\\bfinalize\\s*\\(\\s*\\)");
 
     public List<SourcePattern> scan(Path projectPath) {
         Objects.requireNonNull(projectPath, "projectPath");
@@ -49,22 +57,30 @@ public final class SourcePatternScanner {
         var lines = Files.readAllLines(javaFile, StandardCharsets.UTF_8);
         var sanitizedLines = stripCommentsAndLiterals(lines);
         var relativePath = root.relativize(javaFile);
-        var reportedTypes = EnumSet.noneOf(SourcePatternType.class);
+        var seenTypes = EnumSet.noneOf(SourcePatternType.class);
         var filePatterns = new ArrayList<SourcePattern>();
         var importsUnsafe = importsSunMiscUnsafe(sanitizedLines);
         for (int index = 0; index < lines.size(); index++) {
             var line = sanitizedLines.get(index);
+            if (JAVA_EE_REMOVED_API.matcher(line).find()
+                    && seenTypes.add(SourcePatternType.JAVA_EE_REMOVED_API)) {
+                filePatterns.add(new SourcePattern(
+                        SourcePatternType.JAVA_EE_REMOVED_API,
+                        relativePath,
+                        index + 1,
+                        lines.get(index)));
+            }
             if (line.stripLeading().startsWith("import ")) {
                 continue;
             }
-            if (line.contains("Map<String, Object>") && reportedTypes.add(SourcePatternType.MAP_STRING_OBJECT)) {
+            if (line.contains("Map<String, Object>") && seenTypes.add(SourcePatternType.MAP_STRING_OBJECT)) {
                 filePatterns.add(new SourcePattern(
                         SourcePatternType.MAP_STRING_OBJECT,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
-            if (line.contains("SimpleDateFormat") && reportedTypes.add(SourcePatternType.SIMPLE_DATE_FORMAT)) {
+            if (line.contains("SimpleDateFormat") && seenTypes.add(SourcePatternType.SIMPLE_DATE_FORMAT)) {
                 filePatterns.add(new SourcePattern(
                         SourcePatternType.SIMPLE_DATE_FORMAT,
                         relativePath,
@@ -72,30 +88,59 @@ public final class SourcePatternScanner {
                         lines.get(index)));
             }
             if ((line.contains("Executors.newFixedThreadPool") || line.contains("Executors.newCachedThreadPool"))
-                    && reportedTypes.add(SourcePatternType.EXECUTOR_FACTORY)) {
+                    && seenTypes.add(SourcePatternType.EXECUTOR_FACTORY)) {
                 filePatterns.add(new SourcePattern(
                         SourcePatternType.EXECUTOR_FACTORY,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
-            if (line.contains("ThreadLocal") && reportedTypes.add(SourcePatternType.THREAD_LOCAL)) {
+            if (line.contains("ThreadLocal") && seenTypes.add(SourcePatternType.THREAD_LOCAL)) {
                 filePatterns.add(new SourcePattern(
                         SourcePatternType.THREAD_LOCAL,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
-            if (isUnsafeUsage(line, importsUnsafe) && reportedTypes.add(SourcePatternType.UNSAFE_MEMORY_ACCESS)) {
+            if (isUnsafeUsage(line, importsUnsafe) && seenTypes.add(SourcePatternType.UNSAFE_MEMORY_ACCESS)) {
                 filePatterns.add(new SourcePattern(
                         SourcePatternType.UNSAFE_MEMORY_ACCESS,
                         relativePath,
                         index + 1,
                         lines.get(index)));
             }
+            if (JDK_INTERNAL_API.matcher(line).find() && seenTypes.add(SourcePatternType.JDK_INTERNAL_API)) {
+                filePatterns.add(new SourcePattern(
+                        SourcePatternType.JDK_INTERNAL_API,
+                        relativePath,
+                        index + 1,
+                        lines.get(index)));
+            }
+            if (REFLECTIVE_ACCESS.matcher(line).find() && seenTypes.add(SourcePatternType.REFLECTIVE_ACCESS)) {
+                filePatterns.add(new SourcePattern(
+                        SourcePatternType.REFLECTIVE_ACCESS,
+                        relativePath,
+                        index + 1,
+                        lines.get(index)));
+            }
+            if (SECURITY_MANAGER_USAGE.matcher(line).find()
+                    && seenTypes.add(SourcePatternType.SECURITY_MANAGER_USAGE)) {
+                filePatterns.add(new SourcePattern(
+                        SourcePatternType.SECURITY_MANAGER_USAGE,
+                        relativePath,
+                        index + 1,
+                        lines.get(index)));
+            }
+            if (FINALIZATION_USAGE.matcher(line).find() && seenTypes.add(SourcePatternType.FINALIZATION_USAGE)) {
+                filePatterns.add(new SourcePattern(
+                        SourcePatternType.FINALIZATION_USAGE,
+                        relativePath,
+                        index + 1,
+                        lines.get(index)));
+            }
         }
         findStructuredConcurrencyPreviewLine(lines).ifPresent(lineNumber -> {
-            if (reportedTypes.add(SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW)) {
+            if (seenTypes.add(SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW)) {
                 filePatterns.add(new SourcePattern(
                         SourcePatternType.STRUCTURED_CONCURRENCY_PREVIEW,
                         relativePath,

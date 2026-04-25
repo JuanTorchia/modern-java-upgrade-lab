@@ -42,6 +42,31 @@ The report is designed to answer:
 - which source-level modernization candidates are worth reviewing;
 - which changes should stay out of scope until the migration baseline is stable.
 
+For multiple generated JSON reports, create a local portfolio summary:
+
+```bash
+java -jar cli/target/modern-java-upgrade-lab-cli.jar portfolio \
+  --input reports/scenario-matrix \
+  --output reports/portfolio-summary.md
+```
+
+To make the analyzer usable as a CI gate, fail the command when the detected readiness risk reaches a threshold:
+
+```bash
+java -jar cli/target/modern-java-upgrade-lab-cli.jar analyze \
+  --path . \
+  --target 21 \
+  --format json \
+  --fail-on-risk HIGH
+```
+
+The command returns exit code `2` when the report risk is at or above the configured threshold.
+
+Detailed usage:
+
+- [Getting started](docs/getting-started.md)
+- [CI risk gate](docs/ci-gate.md)
+
 ## Why This Exists
 
 Java migrations are rarely syntax migrations. Real teams deal with build plugins, framework compatibility, dependency baselines, CI behavior, runtime flags, observability, and test confidence.
@@ -79,6 +104,13 @@ Sample reports:
 
 - [Spring Boot 3 Gradle Java 21 to Java 25](reports/sample-spring-boot-3-gradle-java-21-to-java-25.md)
 - [Spring Boot 2 Maven Java 8 to Java 21](reports/sample-spring-boot-2-java-8-to-java-21.md)
+
+Open source validation:
+
+- [Open source reference cases](docs/open-source-reference-cases.md)
+- [Generated open source case studies](docs/case-studies/index.md)
+- [Java upgrade scenario matrix](docs/upgrade-scenario-matrix.md)
+- [Product positioning](docs/product/positioning.md)
 
 ## Contributing
 

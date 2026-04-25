@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "1.0",
+  "targetJavaVersion": 21,
+  "riskLevel": "HIGH",
+  "riskScore": 100,
+  "riskReasons": ["Declared Java 11 targets Java 21", "Spring Boot 2.5.2 is below the safer 2.7.x Java 21 staging baseline", "Report contains 3 risk-severity finding(s)", "Gradle wrapper 6.8.3 should be validated before Java 21 builds", "Runtime image still references Java 11"],
+  "buildReadiness": {
+    "buildWrapperPresent": true,
+    "ciProvider": "GitHub Actions",
+    "ciEvidence": ".github/workflows/build.yml",
+    "suggestedTestCommand": "./gradlew test"
+  },
+  "project": {
+    "path": "C:\\Users\\jstor\\develop\\modern-java-upgrade\\.worktrees\\reference-cases\\realworld-springboot-java",
+    "buildTool": "gradle",
+    "declaredJavaVersion": "11",
+    "springBootVersion": "2.5.2"
+  },
+  "dependencyBaselines": [
+    {
+      "category": "Build tool",
+      "name": "Gradle wrapper",
+      "version": "6.8.3",
+      "evidence": "gradle/wrapper/gradle-wrapper.properties"
+    },
+    {
+      "category": "Build plugin",
+      "name": "org.springframework.boot",
+      "version": "2.5.2",
+      "evidence": "build.gradle"
+    },
+    {
+      "category": "Build plugin",
+      "name": "io.spring.dependency-management",
+      "version": "1.0.11.RELEASE",
+      "evidence": "build.gradle"
+    },
+    {
+      "category": "Build plugin",
+      "name": "io.freefair.lombok",
+      "version": "5.3.3.3",
+      "evidence": "build.gradle"
+    },
+    {
+      "category": "Build plugin",
+      "name": "org.ec4j.editorconfig",
+      "version": "0.0.3",
+      "evidence": "build.gradle"
+    },
+    {
+      "category": "Build plugin",
+      "name": "org.sonarqube",
+      "version": "3.1.1",
+      "evidence": "build.gradle"
+    },
+    {
+      "category": "Build plugin",
+      "name": "com.google.cloud.tools.jib",
+      "version": "3.1.4",
+      "evidence": "build.gradle"
+    },
+    {
+      "category": "Test dependency",
+      "name": "org.mockito:mockito-inline",
+      "version": "3.12.1",
+      "evidence": "build.gradle"
+    },
+    {
+      "category": "Runtime image",
+      "name": "Jib base image",
+      "version": "openjdk:11.0.10-jre-buster",
+      "evidence": "build.gradle"
+    }
+  ],
+  "workItems": [
+    {
+      "id": "run-baseline-tests",
+      "category": "BUILD",
+      "title": "Run baseline tests in CI before migration changes",
+      "rationale": "A Java migration needs a known failing/passing baseline before changing runtime, framework, or build configuration.",
+      "command": "./gradlew test",
+      "priority": "P0",
+      "phase": "Baseline"
+    },
+    {
+      "id": "stage-spring-boot-2-7",
+      "category": "FRAMEWORK",
+      "title": "Stage Spring Boot 2.7.x before the Java 21 rollout",
+      "rationale": "Spring Boot 2.5.2 is below the safer Spring Boot 2.7.x staging baseline for Java 21 planning.",
+      "command": null,
+      "priority": "P1",
+      "phase": "Framework"
+    },
+    {
+      "id": "upgrade-gradle-wrapper",
+      "category": "BUILD",
+      "title": "Validate or upgrade the Gradle wrapper before Java 21",
+      "rationale": "Detected Gradle wrapper 6.8.3. Older Gradle versions can block newer Java toolchains.",
+      "command": "./gradlew wrapper --gradle-version <validated-version>",
+      "priority": "P1",
+      "phase": "Build"
+    },
+    {
+      "id": "replace-java-11-runtime-image",
+      "category": "RUNTIME",
+      "title": "Replace Java 11 runtime image before Java 21 rollout",
+      "rationale": "Detected runtime image openjdk:11.0.10-jre-buster, which does not match the requested Java 21 runtime.",
+      "command": null,
+      "priority": "P1",
+      "phase": "Runtime"
+    },
+    {
+      "id": "run-openrewrite-java-21",
+      "category": "AUTOMATION",
+      "title": "Run OpenRewrite Java 21 recipe in a branch",
+      "rationale": "OpenRewrite automation should be reviewable and separate from manual runtime changes.",
+      "command": "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava21",
+      "priority": "P2",
+      "phase": "Automation"
+    }
+  ],
+  "findings": [
+    {
+      "id": "spring-boot-2-java-21-risk",
+      "category": "FRAMEWORK",
+      "blockerCategory": "FRAMEWORK_BASELINE",
+      "severity": "RISK",
+      "area": "Spring Boot compatibility",
+      "title": "Spring Boot 2.x needs compatibility validation before a Java 21 migration",
+      "evidence": "Detected Spring Boot 2.5.2",
+      "recommendation": "Validate the project on Spring Boot 2.7.x before the Java 21 rollout. Treat Spring Boot 3 as a separate migration because it also introduces Jakarta namespace changes.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "legacy-dependency-org-mockito-mockito-inline",
+      "category": "BUILD",
+      "blockerCategory": "DEPENDENCY_COMPATIBILITY",
+      "severity": "RISK",
+      "area": "Dependency compatibility",
+      "title": "mockito-inline baseline should be reviewed before Java 21",
+      "evidence": "Detected org.mockito:mockito-inline 3.12.1 in build.gradle",
+      "recommendation": "Validate this dependency against the target JDK and upgrade it in a dedicated build-readiness branch.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "runtime-image-target-mismatch",
+      "category": "BUILD",
+      "blockerCategory": "RUNTIME_IMAGE",
+      "severity": "RISK",
+      "area": "Runtime image",
+      "title": "Runtime image should match the requested Java 21 rollout",
+      "evidence": "Detected runtime image openjdk:11.0.10-jre-buster in build.gradle",
+      "recommendation": "Update container/runtime images separately from source changes and verify rollback to the previous runtime.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "openrewrite-java-21",
+      "category": "AUTOMATION",
+      "blockerCategory": "AUTOMATION",
+      "severity": "INFO",
+      "area": "Migration automation",
+      "title": "OpenRewrite has a Java 21 migration recipe",
+      "evidence": "Target Java version is 21",
+      "recommendation": "Review and run the suggested OpenRewrite recipe in a branch before manual changes.",
+      "openRewriteRecipe": "org.openrewrite.java.migrate.UpgradeToJava21"
+    }
+  ],
+  "analysisMetadata": {
+    "analyzerVersion": "0.1.0-SNAPSHOT",
+    "generatedAt": "2026-04-25T02:18:07.558090900Z",
+    "gitCommit": "56be3ced4f3134424ead5fcaf387b3aa640b9532",
+    "gitBranch": "master"
+  }
+}

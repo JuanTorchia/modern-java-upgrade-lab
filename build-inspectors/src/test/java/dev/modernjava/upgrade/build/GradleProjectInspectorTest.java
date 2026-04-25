@@ -3,6 +3,7 @@ package dev.modernjava.upgrade.build;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.modernjava.upgrade.core.DependencyBaseline;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
@@ -90,6 +91,30 @@ class GradleProjectInspectorTest {
 
         assertThat(metadata.dependencies()).containsExactly("org.springframework.boot:spring-boot-starter-web");
         assertThat(metadata.buildPlugins()).containsExactly("java");
+    }
+
+    @Test
+    void detectsGradleDependencyAndPluginBaselines() {
+        var fixturePath = Path.of("src", "test", "resources", "fixtures", "gradle-groovy-enterprise-baselines");
+
+        var metadata = new GradleProjectInspector().inspect(fixturePath);
+
+        assertThat(metadata.dependencyBaselines()).contains(
+                new DependencyBaseline(
+                        "Build tool",
+                        "Gradle wrapper",
+                        "6.8.3",
+                        "gradle/wrapper/gradle-wrapper.properties"),
+                new DependencyBaseline("Build plugin", "org.springframework.boot", "2.5.2", "build.gradle"),
+                new DependencyBaseline(
+                        "Build plugin",
+                        "io.spring.dependency-management",
+                        "1.0.11.RELEASE",
+                        "build.gradle"),
+                new DependencyBaseline("Build plugin", "com.google.cloud.tools.jib", "3.1.4", "build.gradle"),
+                new DependencyBaseline("Build plugin", "io.freefair.lombok", "5.3.3.3", "build.gradle"),
+                new DependencyBaseline("Test dependency", "org.mockito:mockito-inline", "3.12.1", "build.gradle"),
+                new DependencyBaseline("Runtime image", "Jib base image", "openjdk:11.0.10-jre-buster", "build.gradle"));
     }
 
     @Test

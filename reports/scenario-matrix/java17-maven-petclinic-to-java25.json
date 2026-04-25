@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "targetJavaVersion": 25,
+  "riskLevel": "LOW",
+  "riskScore": 15,
+  "riskReasons": ["Declared Java 17 targets Java 25"],
+  "buildReadiness": {
+    "buildWrapperPresent": true,
+    "ciProvider": "GitHub Actions",
+    "ciEvidence": ".github/workflows/deploy-and-test-cluster.yml",
+    "suggestedTestCommand": "./mvnw test"
+  },
+  "project": {
+    "path": "C:\\Users\\jstor\\develop\\modern-java-upgrade\\.worktrees\\reference-cases\\spring-petclinic",
+    "buildTool": "maven",
+    "declaredJavaVersion": "17",
+    "springBootVersion": "4.0.3"
+  },
+  "dependencyBaselines": [],
+  "workItems": [
+    {
+      "id": "run-baseline-tests",
+      "category": "BUILD",
+      "title": "Run baseline tests in CI before migration changes",
+      "rationale": "A Java migration needs a known failing/passing baseline before changing runtime, framework, or build configuration.",
+      "command": "./mvnw test",
+      "priority": "P0",
+      "phase": "Baseline"
+    },
+    {
+      "id": "run-openrewrite-java-25",
+      "category": "AUTOMATION",
+      "title": "Run OpenRewrite Java 25 recipe in a branch",
+      "rationale": "OpenRewrite automation should be reviewable and separate from manual runtime changes.",
+      "command": "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava25",
+      "priority": "P2",
+      "phase": "Automation"
+    }
+  ],
+  "findings": [
+    {
+      "id": "maven-compiler-plugin-explicit-config",
+      "category": "BUILD",
+      "blockerCategory": "BUILD_PLUGIN",
+      "severity": "INFO",
+      "area": "Build configuration",
+      "title": "Maven compiler configuration should be explicit for Java 25 migration evidence",
+      "evidence": "No maven-compiler-plugin entry was detected in build plugins",
+      "recommendation": "Add explicit compiler plugin configuration or verify the effective POM so the report can explain the Java release used by CI.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "openrewrite-java-25",
+      "category": "AUTOMATION",
+      "blockerCategory": "AUTOMATION",
+      "severity": "INFO",
+      "area": "Migration automation",
+      "title": "OpenRewrite has a Java 25 migration recipe",
+      "evidence": "Target Java version is 25",
+      "recommendation": "Review and run the suggested OpenRewrite recipe in a branch before manual changes.",
+      "openRewriteRecipe": "org.openrewrite.java.migrate.UpgradeToJava25"
+    },
+    {
+      "id": "source-map-string-object-src-main-java-org-springframework-samples-petclinic-owner-visitcontroller-java-64",
+      "category": "LANGUAGE",
+      "blockerCategory": "LANGUAGE_MODERNIZATION",
+      "severity": "INFO",
+      "area": "Language modernization",
+      "title": "Map-based response can be reviewed as an explicit DTO or record",
+      "evidence": "src\\main\\java\\org\\springframework\\samples\\petclinic\\owner\\VisitController.java:64 contains `Map<String, Object> model) {`",
+      "recommendation": "Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "source-map-string-object-src-test-java-org-springframework-samples-petclinic-system-crashcontrollerintegrationtests-java-63",
+      "category": "LANGUAGE",
+      "blockerCategory": "LANGUAGE_MODERNIZATION",
+      "severity": "INFO",
+      "area": "Language modernization",
+      "title": "Map-based response can be reviewed as an explicit DTO or record",
+      "evidence": "src\\test\\java\\org\\springframework\\samples\\petclinic\\system\\CrashControllerIntegrationTests.java:63 contains `ResponseEntity<Map<String, Object>> resp = rest.exchange(`",
+      "recommendation": "Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.",
+      "openRewriteRecipe": null
+    }
+  ],
+  "analysisMetadata": {
+    "analyzerVersion": "0.1.0-SNAPSHOT",
+    "generatedAt": "2026-04-25T02:18:16.954657600Z",
+    "gitCommit": "c7ee170434ec3e369fdc9201290ba2ea4c92b557",
+    "gitBranch": "main"
+  }
+}

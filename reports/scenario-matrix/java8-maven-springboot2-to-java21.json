@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "1.0",
+  "targetJavaVersion": 21,
+  "riskLevel": "HIGH",
+  "riskScore": 85,
+  "riskReasons": ["Declared Java 8 targets Java 21", "Java 8 to Java 21 crosses multiple LTS baselines", "Report contains 4 risk-severity finding(s)"],
+  "buildReadiness": {
+    "buildWrapperPresent": false,
+    "ciProvider": null,
+    "ciEvidence": null,
+    "suggestedTestCommand": "mvn test"
+  },
+  "project": {
+    "path": "C:\\Users\\jstor\\develop\\modern-java-upgrade\\examples\\spring-boot-2-java-8",
+    "buildTool": "maven",
+    "declaredJavaVersion": "8",
+    "springBootVersion": "2.7.18"
+  },
+  "dependencyBaselines": [
+    {
+      "category": "Build plugin",
+      "name": "org.apache.maven.plugins:maven-surefire-plugin",
+      "version": "2.19.1",
+      "evidence": "pom.xml"
+    }
+  ],
+  "workItems": [
+    {
+      "id": "run-baseline-tests",
+      "category": "BUILD",
+      "title": "Run baseline tests in CI before migration changes",
+      "rationale": "A Java migration needs a known failing/passing baseline before changing runtime, framework, or build configuration.",
+      "command": "mvn test",
+      "priority": "P0",
+      "phase": "Baseline"
+    },
+    {
+      "id": "run-openrewrite-java-21",
+      "category": "AUTOMATION",
+      "title": "Run OpenRewrite Java 21 recipe in a branch",
+      "rationale": "OpenRewrite automation should be reviewable and separate from manual runtime changes.",
+      "command": "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava21",
+      "priority": "P2",
+      "phase": "Automation"
+    }
+  ],
+  "findings": [
+    {
+      "id": "java-8-baseline-target-21",
+      "category": "BASELINE",
+      "blockerCategory": "BASELINE",
+      "severity": "INFO",
+      "area": "Java baseline",
+      "title": "Java 8 baseline should be migrated deliberately before adopting Java 21",
+      "evidence": "Declared Java version is 8",
+      "recommendation": "Establish a Java 21 build and test baseline before introducing optional language modernization.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "spring-boot-2-java-21-risk",
+      "category": "FRAMEWORK",
+      "blockerCategory": "FRAMEWORK_BASELINE",
+      "severity": "RISK",
+      "area": "Spring Boot compatibility",
+      "title": "Spring Boot 2.x needs compatibility validation before a Java 21 migration",
+      "evidence": "Detected Spring Boot 2.7.18",
+      "recommendation": "Validate the project on Spring Boot 2.7.x before the Java 21 rollout. Treat Spring Boot 3 as a separate migration because it also introduces Jakarta namespace changes.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "java-8-to-11-test-plugin-baseline-org-apache-maven-plugins-maven-surefire-plugin",
+      "category": "BUILD",
+      "blockerCategory": "BUILD_PLUGIN",
+      "severity": "RISK",
+      "area": "Test runtime",
+      "title": "maven-surefire-plugin should be upgraded before Java 21 test baselining",
+      "evidence": "Detected org.apache.maven.plugins:maven-surefire-plugin 2.19.1 in pom.xml",
+      "recommendation": "Upgrade Surefire/Failsafe to a Java 21 compatible baseline before trusting migration test results.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "maven-compiler-plugin-explicit-config",
+      "category": "BUILD",
+      "blockerCategory": "BUILD_PLUGIN",
+      "severity": "INFO",
+      "area": "Build configuration",
+      "title": "Maven compiler configuration should be explicit for Java 21 migration evidence",
+      "evidence": "No maven-compiler-plugin entry was detected in build plugins",
+      "recommendation": "Add explicit compiler plugin configuration or verify the effective POM so the report can explain the Java release used by CI.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "openrewrite-java-21",
+      "category": "AUTOMATION",
+      "blockerCategory": "AUTOMATION",
+      "severity": "INFO",
+      "area": "Migration automation",
+      "title": "OpenRewrite has a Java 21 migration recipe",
+      "evidence": "Target Java version is 21",
+      "recommendation": "Review and run the suggested OpenRewrite recipe in a branch before manual changes.",
+      "openRewriteRecipe": "org.openrewrite.java.migrate.UpgradeToJava21"
+    },
+    {
+      "id": "source-map-string-object-src-main-java-dev-modernjava-upgrade-example-legacygreetingcontroller-java-13",
+      "category": "LANGUAGE",
+      "blockerCategory": "LANGUAGE_MODERNIZATION",
+      "severity": "INFO",
+      "area": "Language modernization",
+      "title": "Map-based response can be reviewed as an explicit DTO or record",
+      "evidence": "src\\main\\java\\dev\\modernjava\\upgrade\\example\\LegacyGreetingController.java:13 contains `public Map<String, Object> greeting() {`",
+      "recommendation": "Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "java-8-to-11-reflective-access",
+      "category": "BUILD",
+      "blockerCategory": "REFLECTIVE_ACCESS",
+      "severity": "RISK",
+      "area": "Illegal reflective access",
+      "title": "Reflective access should be reviewed before Java 11+ migration",
+      "evidence": "src\\main\\java\\dev\\modernjava\\upgrade\\example\\LegacyReflectiveAccess.java:8 contains `field.setAccessible(true);`",
+      "recommendation": "Run tests on Java 11 with warnings enabled and remove or explicitly contain illegal reflective access.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "java-8-to-11-removed-java-ee-api",
+      "category": "BUILD",
+      "blockerCategory": "JAVA_EE_REMOVED",
+      "severity": "RISK",
+      "area": "Removed Java EE modules",
+      "title": "Removed Java EE/JAXB API usage blocks a clean Java 11 migration",
+      "evidence": "src\\main\\java\\dev\\modernjava\\upgrade\\example\\LegacyXmlBindingAdapter.java:3 contains `import javax.xml.bind.JAXBContext;`",
+      "recommendation": "Add explicit dependencies or migrate the affected API before moving the runtime to Java 11.",
+      "openRewriteRecipe": null
+    }
+  ],
+  "analysisMetadata": {
+    "analyzerVersion": "0.1.0-SNAPSHOT",
+    "generatedAt": "2026-04-25T02:17:57.635285500Z",
+    "gitCommit": "2ad9da582f0a89f8212893298bf176e9e1dde307",
+    "gitBranch": "master"
+  }
+}
