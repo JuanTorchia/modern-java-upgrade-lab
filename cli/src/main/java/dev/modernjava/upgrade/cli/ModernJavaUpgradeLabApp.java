@@ -8,7 +8,7 @@ import picocli.CommandLine.Command;
         mixinStandardHelpOptions = true,
         version = "mjul 0.1.0-SNAPSHOT",
         description = "Generate evidence-based Java LTS migration reports.",
-        subcommands = AnalyzeCommand.class)
+        subcommands = {AnalyzeCommand.class, PortfolioCommand.class})
 public final class ModernJavaUpgradeLabApp implements Runnable {
 
     public static void main(String[] args) {

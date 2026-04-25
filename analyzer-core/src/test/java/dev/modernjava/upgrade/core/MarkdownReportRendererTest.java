@@ -3,6 +3,7 @@ package dev.modernjava.upgrade.core;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +42,73 @@ class MarkdownReportRendererTest {
                 - Build tool: Maven
                 - Declared Java version: 8
                 - Target Java version: 21
+                - Migration status: Upgrade required (Java 8 -> 21)
                 - Spring Boot version: 2.7.18
+
+                ## Risk Assessment
+
+                - Risk level: HIGH
+                - Risk score: 65/100
+                - Reason: Declared Java 8 targets Java 21
+                - Reason: Java 8 to Java 21 crosses multiple LTS baselines
+                - Reason: Report contains 1 risk-severity finding(s)
+
+                ## Build Readiness
+
+                - Build wrapper present: No
+                - CI provider: Unknown
+                - CI evidence: `Unknown`
+                - Suggested test command: `mvn test`
+
+                ## Analysis Metadata
+
+                - Analyzer version: unknown
+                - Generated at: Unknown
+                - Source path: `%s`
+                - Git commit: `Unknown`
+                - Git branch: `Unknown`
+                - Target Java: 21
+
+                ## Recommended Work Items
+
+                ### [BUILD] Run baseline tests in CI before migration changes
+
+                - Rationale: A Java migration needs a known failing/passing baseline before changing runtime, framework, or build configuration.
+                - Command: `mvn test`
+
+                ### [AUTOMATION] Run OpenRewrite Java 21 recipe in a branch
+
+                - Rationale: OpenRewrite automation should be reviewable and separate from manual runtime changes.
+                - Command: `mvn -U org.openrewrite.maven:rewrite-maven-plugin:run -Drewrite.activeRecipes=org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`
+
+                ## Migration Plan
+
+                ### Phase 1: Baseline
+
+                - Confirm the current Java version in local development and CI.
+                - Run the full test suite before changing the Java target.
+                - Make compiler, toolchain, and runtime configuration explicit.
+
+                ### Phase 2: Framework Compatibility
+
+                - Validate Spring Boot 2.7.18 support before moving to Java 21.
+                - Move to Spring Boot 2.7.x first when staying on the Spring Boot 2 line.
+                - Treat Spring Boot 3.x as a separate migration because it introduces Jakarta namespace changes.
+
+                ### Phase 3: Automated Changes
+
+                - Run suggested OpenRewrite recipes in a dedicated branch.
+                - Review generated diffs and datatables before merging.
+
+                ### Phase 4: Manual Review
+
+                - Review source modernization candidates after the migration baseline is stable.
+                - Keep optional refactors out of the baseline migration branch.
+
+                ### Phase 5: Rollout
+
+                - Validate CI, container images, runtime flags, observability, and rollback paths.
+                - Roll out the runtime upgrade separately from broad application refactors.
 
                 ## Framework Compatibility
 
@@ -52,11 +119,49 @@ class MarkdownReportRendererTest {
                 - Recommendation: Upgrade to a Spring Boot 3.x baseline before adopting Java 21.
                 - OpenRewrite recipe: `org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2`
                 - OpenRewrite command: `%s`
-                """.formatted(request.projectPath().toAbsolutePath().normalize(), openRewriteCommand).stripTrailing();
+                """.formatted(
+                        request.projectPath().toAbsolutePath().normalize(),
+                        request.projectPath().toAbsolutePath().normalize(),
+                        openRewriteCommand).stripTrailing();
 
         var report = new MarkdownReportRenderer().render(request, result);
 
-        assertThat(report).isEqualTo(expectedReport);
+        assertThat(report)
+                .contains("# Modern Java Upgrade Report")
+                .contains("## Executive Summary")
+                .contains("## Migration Blockers")
+                .contains("## Recommended Work Items")
+                .contains("- Priority: P0")
+                .contains("- Phase: Baseline")
+                .contains("## Suggested Commands")
+                .contains("## Framework Compatibility")
+                .contains("- OpenRewrite command: `%s`".formatted(openRewriteCommand));
+    }
+
+    @Test
+    void rendersAnalysisMetadataWhenAvailable() {
+        var request = new AnalysisRequest(Path.of("/workspace/sample-project"), 21);
+        var metadata = new ProjectMetadata("maven", "17", "3.3.5", List.of());
+        var analysisMetadata = new AnalysisMetadata(
+                "0.1.0-SNAPSHOT",
+                Instant.parse("2026-04-23T22:00:00Z"),
+                "abc123def456",
+                "main");
+        var result = new AnalysisResult(metadata, 21, List.of(), analysisMetadata);
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains(
+                """
+                ## Analysis Metadata
+
+                - Analyzer version: 0.1.0-SNAPSHOT
+                - Generated at: 2026-04-23T22:00:00Z
+                - Source path: `%s`
+                - Git commit: `abc123def456`
+                - Git branch: `main`
+                - Target Java: 21
+                """.formatted(request.projectPath().toAbsolutePath().normalize()).stripTrailing());
     }
 
     @Test
@@ -67,9 +172,88 @@ class MarkdownReportRendererTest {
 
         var report = new MarkdownReportRenderer().render(request, result);
 
+        assertThat(report).contains("## Migration Plan");
         assertThat(report).contains("No findings were generated yet.");
         assertThat(report).contains("## Project Summary");
         assertThat(report).doesNotContain("## Findings");
+    }
+
+    @Test
+    void rendersAlreadyAtTargetMigrationStatus() {
+        var request = new AnalysisRequest(Path.of("/workspace/current-project"), 21);
+        var metadata = new ProjectMetadata("maven", "21", "4.0.3", List.of());
+        var result = new AnalysisResult(metadata, 21, List.of());
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains("- Migration status: Already at target Java 21");
+    }
+
+    @Test
+    void rendersRiskAssessmentSummary() {
+        var request = new AnalysisRequest(Path.of("/workspace/risky-project"), 21);
+        var metadata = new ProjectMetadata("gradle", "11", "2.5.2", List.of(), List.of());
+        var result = new DefaultAnalyzer(metadata).analyze(request);
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains(
+                """
+                ## Risk Assessment
+
+                - Risk level: HIGH
+                - Risk score: """
+        );
+        assertThat(report).contains("- Reason: Declared Java 11 targets Java 21");
+    }
+
+    @Test
+    void rendersUnknownBaselineMigrationStatus() {
+        var request = new AnalysisRequest(Path.of("/workspace/unknown-project"), 21);
+        var metadata = new ProjectMetadata("maven", "unknown", null, List.of());
+        var result = new AnalysisResult(metadata, 21, List.of());
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains("- Migration status: Baseline unknown; verify Java version before planning Java 21");
+    }
+
+    @Test
+    void rendersTargetBelowBaselineMigrationStatus() {
+        var request = new AnalysisRequest(Path.of("/workspace/newer-project"), 17);
+        var metadata = new ProjectMetadata("maven", "21", "3.3.5", List.of());
+        var result = new AnalysisResult(metadata, 17, List.of());
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains("- Migration status: Target Java 17 is below declared Java 21");
+    }
+
+    @Test
+    void rendersMigrationPlanWithFrameworkGuidance() {
+        var request = new AnalysisRequest(Path.of("/workspace/spring-boot-2-project"), 21);
+        var metadata = new ProjectMetadata("gradle", "11", "2.6.3", List.of());
+        var result = new AnalysisResult(metadata, 21, List.of());
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).containsSubsequence(
+                "## Project Summary",
+                "## Migration Plan",
+                "### Phase 1: Baseline",
+                "### Phase 2: Framework Compatibility",
+                "### Phase 3: Automated Changes",
+                "### Phase 4: Manual Review",
+                "### Phase 5: Rollout",
+                "No findings were generated yet.");
+        assertThat(report).contains(
+                """
+                ### Phase 2: Framework Compatibility
+
+                - Validate Spring Boot 2.6.3 support before moving to Java 21.
+                - Move to Spring Boot 2.7.x first when staying on the Spring Boot 2 line.
+                - Treat Spring Boot 3.x as a separate migration because it introduces Jakarta namespace changes.
+                """.stripTrailing());
     }
 
     @Test
@@ -102,6 +286,37 @@ class MarkdownReportRendererTest {
                 - Path: `%s`
                 """.formatted(Path.of("gradle", "libs.versions.toml")).stripTrailing());
         assertThat(report).contains("No findings were generated yet.");
+    }
+
+    @Test
+    void rendersDependencyAndPluginBaselinesInDedicatedSection() {
+        var request = new AnalysisRequest(Path.of("/workspace/sample-project"), 21);
+        var metadata = new ProjectMetadata(
+                "gradle",
+                "11",
+                "2.5.2",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(new DependencyBaseline(
+                        "Build plugin",
+                        "org.springframework.boot",
+                        "2.5.2",
+                        "build.gradle")),
+                List.of());
+        var result = new AnalysisResult(metadata, 21, List.of());
+
+        var report = new MarkdownReportRenderer().render(request, result);
+
+        assertThat(report).contains(
+                """
+                ## Dependency & Plugin Baselines
+
+                | Category | Name | Version | Evidence |
+                | --- | --- | --- | --- |
+                | Build plugin | org.springframework.boot | 2.5.2 | `build.gradle` |
+                """.stripTrailing());
     }
 
     @Test

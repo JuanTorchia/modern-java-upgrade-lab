@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0",
+  "targetJavaVersion": 11,
+  "riskLevel": "MEDIUM",
+  "riskScore": 55,
+  "riskReasons": ["Declared Java 8 targets Java 11", "Java 8 to Java 11 requires removed-module and illegal-access validation", "Report contains 3 risk-severity finding(s)"],
+  "buildReadiness": {
+    "buildWrapperPresent": false,
+    "ciProvider": null,
+    "ciEvidence": null,
+    "suggestedTestCommand": "mvn test"
+  },
+  "project": {
+    "path": "C:\\Users\\jstor\\develop\\modern-java-upgrade\\examples\\spring-boot-2-java-8",
+    "buildTool": "maven",
+    "declaredJavaVersion": "8",
+    "springBootVersion": "2.7.18"
+  },
+  "dependencyBaselines": [
+    {
+      "category": "Build plugin",
+      "name": "org.apache.maven.plugins:maven-surefire-plugin",
+      "version": "2.19.1",
+      "evidence": "pom.xml"
+    }
+  ],
+  "workItems": [
+    {
+      "id": "run-baseline-tests",
+      "category": "BUILD",
+      "title": "Run baseline tests in CI before migration changes",
+      "rationale": "A Java migration needs a known failing/passing baseline before changing runtime, framework, or build configuration.",
+      "command": "mvn test",
+      "priority": "P0",
+      "phase": "Baseline"
+    }
+  ],
+  "findings": [
+    {
+      "id": "java-8-to-11-baseline",
+      "category": "BASELINE",
+      "blockerCategory": "BASELINE",
+      "severity": "INFO",
+      "area": "Java baseline",
+      "title": "Java 8 to 11 migration needs a compatibility baseline",
+      "evidence": "Declared Java version is 8; target Java version is 11",
+      "recommendation": "Run the full test suite on Java 8, then establish a separate Java 11 branch that validates removed Java EE modules, reflection warnings, build plugins, and runtime images.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "java-8-to-11-test-plugin-baseline-org-apache-maven-plugins-maven-surefire-plugin",
+      "category": "BUILD",
+      "blockerCategory": "BUILD_PLUGIN",
+      "severity": "RISK",
+      "area": "Test runtime",
+      "title": "maven-surefire-plugin should be upgraded before Java 11 test baselining",
+      "evidence": "Detected org.apache.maven.plugins:maven-surefire-plugin 2.19.1 in pom.xml",
+      "recommendation": "Upgrade Surefire/Failsafe to a Java 11 compatible baseline before trusting migration test results.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "java-8-to-11-reflective-access",
+      "category": "BUILD",
+      "blockerCategory": "REFLECTIVE_ACCESS",
+      "severity": "RISK",
+      "area": "Illegal reflective access",
+      "title": "Reflective access should be reviewed before Java 11+ migration",
+      "evidence": "src\\main\\java\\dev\\modernjava\\upgrade\\example\\LegacyReflectiveAccess.java:8 contains `field.setAccessible(true);`",
+      "recommendation": "Run tests on Java 11 with warnings enabled and remove or explicitly contain illegal reflective access.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "java-8-to-11-removed-java-ee-api",
+      "category": "BUILD",
+      "blockerCategory": "JAVA_EE_REMOVED",
+      "severity": "RISK",
+      "area": "Removed Java EE modules",
+      "title": "Removed Java EE/JAXB API usage blocks a clean Java 11 migration",
+      "evidence": "src\\main\\java\\dev\\modernjava\\upgrade\\example\\LegacyXmlBindingAdapter.java:3 contains `import javax.xml.bind.JAXBContext;`",
+      "recommendation": "Add explicit dependencies or migrate the affected API before moving the runtime to Java 11.",
+      "openRewriteRecipe": null
+    }
+  ],
+  "analysisMetadata": {
+    "analyzerVersion": "0.1.0-SNAPSHOT",
+    "generatedAt": "2026-04-25T02:17:52.972424700Z",
+    "gitCommit": "2ad9da582f0a89f8212893298bf176e9e1dde307",
+    "gitBranch": "master"
+  }
+}

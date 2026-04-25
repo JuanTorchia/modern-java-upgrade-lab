@@ -317,4 +317,55 @@ class SourcePatternScannerTest {
 
         assertThat(patterns).isEmpty();
     }
+
+    @Test
+    void detectsJava8To11ReadinessPatterns() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/LegacyJava8.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                import javax.xml.bind.JAXBContext;
+
+                final class LegacyJava8 {
+                    void reflect(java.lang.reflect.Field field) throws Exception {
+                        field.setAccessible(true);
+                        System.getSecurityManager();
+                    }
+
+                    @Override
+                    protected void finalize() {
+                    }
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .contains(
+                        SourcePatternType.JAVA_EE_REMOVED_API,
+                        SourcePatternType.REFLECTIVE_ACCESS,
+                        SourcePatternType.SECURITY_MANAGER_USAGE,
+                        SourcePatternType.FINALIZATION_USAGE);
+    }
+
+    @Test
+    void detectsJdkInternalApiUsageOutsideImports() throws Exception {
+        var source = tempDir.resolve("src/main/java/example/InternalAccess.java");
+        Files.createDirectories(source.getParent());
+        Files.writeString(source, """
+                package example;
+
+                final class InternalAccess {
+                    Object access = sun.misc.SharedSecrets.getJavaLangAccess();
+                }
+                """);
+
+        var patterns = new SourcePatternScanner().scan(tempDir);
+
+        assertThat(patterns)
+                .extracting(SourcePattern::type)
+                .containsExactly(SourcePatternType.JDK_INTERNAL_API);
+    }
 }

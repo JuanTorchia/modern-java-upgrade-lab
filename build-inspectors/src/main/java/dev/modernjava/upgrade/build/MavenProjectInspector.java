@@ -1,5 +1,6 @@
 package dev.modernjava.upgrade.build;
 
+import dev.modernjava.upgrade.core.DependencyBaseline;
 import dev.modernjava.upgrade.core.ProjectMetadata;
 import java.io.IOException;
 import java.io.Reader;
@@ -25,15 +26,17 @@ public final class MavenProjectInspector {
 
     public ProjectMetadata inspect(Path projectPath) {
         var pomPath = resolvePomPath(Objects.requireNonNull(projectPath, "projectPath"));
-        var model = readModel(pomPath);
+        var models = readModelTree(pomPath);
 
         return new ProjectMetadata(
                 "maven",
-                detectJavaVersion(model),
-                detectSpringBootVersion(model),
-                collectDependencies(model),
-                collectBuildPlugins(model),
-                collectCompilerArgs(model),
+                detectJavaVersion(models),
+                detectSpringBootVersion(models),
+                collectDependencies(models),
+                collectBuildPlugins(models),
+                collectCompilerArgs(models),
+                List.of(),
+                collectDependencyBaselines(models),
                 List.of());
     }
 
@@ -59,6 +62,35 @@ public final class MavenProjectInspector {
         }
     }
 
+    private static List<Model> readModelTree(Path rootPomPath) {
+        var models = new ArrayList<Model>();
+        var rootModel = readModel(rootPomPath);
+        models.add(rootModel);
+
+        var rootDirectory = rootPomPath.toAbsolutePath().normalize().getParent();
+        if (rootDirectory == null || rootModel.getModules() == null) {
+            return List.copyOf(models);
+        }
+
+        for (String module : rootModel.getModules()) {
+            if (module == null || module.isBlank()) {
+                continue;
+            }
+            var modulePom = rootDirectory.resolve(module.trim()).resolve("pom.xml").normalize();
+            if (Files.isRegularFile(modulePom)) {
+                models.add(readModel(modulePom));
+            }
+        }
+        return List.copyOf(models);
+    }
+
+    private static String detectJavaVersion(List<Model> models) {
+        return firstConsistentValue(models.stream()
+                .map(MavenProjectInspector::detectJavaVersion)
+                .filter(value -> !"unknown".equals(value))
+                .toList());
+    }
+
     private static String detectJavaVersion(Model model) {
         var properties = model.getProperties();
         var declaredJavaVersion = firstNonBlank(
@@ -75,6 +107,12 @@ public final class MavenProjectInspector {
         }
 
         return normalizeJavaVersion(declaredJavaVersion);
+    }
+
+    private static String detectSpringBootVersion(List<Model> models) {
+        return firstConsistentNullableValue(models.stream()
+                .map(MavenProjectInspector::detectSpringBootVersion)
+                .toList());
     }
 
     private static String findCompilerPluginJavaVersion(Model model) {
@@ -128,6 +166,14 @@ public final class MavenProjectInspector {
         return parent != null && SPRING_BOOT_GROUP_ID.equals(parent.getGroupId());
     }
 
+    private static List<String> collectDependencies(List<Model> models) {
+        var dependencies = new LinkedHashSet<String>();
+        for (Model model : models) {
+            dependencies.addAll(collectDependencies(model));
+        }
+        return List.copyOf(dependencies);
+    }
+
     private static List<String> collectDependencies(Model model) {
         if (model.getDependencies() == null) {
             return List.of();
@@ -140,6 +186,14 @@ public final class MavenProjectInspector {
             }
         }
         return List.copyOf(dependencies);
+    }
+
+    private static List<String> collectBuildPlugins(List<Model> models) {
+        var plugins = new LinkedHashSet<String>();
+        for (Model model : models) {
+            plugins.addAll(collectBuildPlugins(model));
+        }
+        return List.copyOf(plugins);
     }
 
     private static List<String> collectBuildPlugins(Model model) {
@@ -166,6 +220,102 @@ public final class MavenProjectInspector {
             plugins.add(groupId + ":" + artifactId);
         }
         return List.copyOf(plugins);
+    }
+
+    private static List<String> collectCompilerArgs(List<Model> models) {
+        var compilerArgs = new LinkedHashSet<String>();
+        for (Model model : models) {
+            compilerArgs.addAll(collectCompilerArgs(model));
+        }
+        return List.copyOf(compilerArgs);
+    }
+
+    private static List<DependencyBaseline> collectDependencyBaselines(List<Model> models) {
+        var baselines = new LinkedHashSet<DependencyBaseline>();
+        for (Model model : models) {
+            addPluginBaselines(model, baselines);
+            addDependencyBaselines(model, baselines);
+        }
+        return List.copyOf(baselines);
+    }
+
+    private static void addPluginBaselines(Model model, Set<DependencyBaseline> baselines) {
+        var build = model.getBuild();
+        if (build == null || build.getPlugins() == null) {
+            return;
+        }
+
+        for (Plugin plugin : build.getPlugins()) {
+            var artifact = pluginCoordinate(plugin);
+            var version = resolveProperty(model.getProperties(), normalizeOptionalVersion(plugin.getVersion()));
+            if (artifact != null && version != null && isTrackedMavenPlugin(artifact)) {
+                baselines.add(new DependencyBaseline("Build plugin", artifact, version, "pom.xml"));
+            }
+        }
+    }
+
+    private static void addDependencyBaselines(Model model, Set<DependencyBaseline> baselines) {
+        if (model.getDependencies() == null) {
+            return;
+        }
+
+        for (Dependency dependency : model.getDependencies()) {
+            if (dependency.getGroupId() == null || dependency.getArtifactId() == null) {
+                continue;
+            }
+            var artifact = dependency.getGroupId() + ":" + dependency.getArtifactId();
+            var version = resolveProperty(model.getProperties(), normalizeOptionalVersion(dependency.getVersion()));
+            if (version != null && isTrackedDependency(artifact)) {
+                baselines.add(new DependencyBaseline(dependencyBaselineCategory(dependency), artifact, version, "pom.xml"));
+            }
+        }
+    }
+
+    private static String pluginCoordinate(Plugin plugin) {
+        var artifactId = normalizeOptionalText(plugin.getArtifactId());
+        if (artifactId == null) {
+            return null;
+        }
+        var groupId = normalizeOptionalText(plugin.getGroupId());
+        if (groupId == null) {
+            groupId = "org.apache.maven.plugins";
+        }
+        return groupId + ":" + artifactId;
+    }
+
+    private static boolean isTrackedMavenPlugin(String artifact) {
+        return "org.apache.maven.plugins:maven-surefire-plugin".equals(artifact)
+                || "org.apache.maven.plugins:maven-failsafe-plugin".equals(artifact)
+                || "org.apache.maven.plugins:maven-compiler-plugin".equals(artifact)
+                || "org.springframework.boot:spring-boot-maven-plugin".equals(artifact);
+    }
+
+    private static boolean isTrackedDependency(String artifact) {
+        return "org.projectlombok:lombok".equals(artifact)
+                || "org.mockito:mockito-core".equals(artifact)
+                || "org.mockito:mockito-inline".equals(artifact)
+                || "net.bytebuddy:byte-buddy".equals(artifact);
+    }
+
+    private static String dependencyBaselineCategory(Dependency dependency) {
+        var scope = normalizeOptionalText(dependency.getScope());
+        if ("test".equals(scope)) {
+            return "Test dependency";
+        }
+        if ("runtime".equals(scope)) {
+            return "Runtime dependency";
+        }
+        return "Application dependency";
+    }
+
+    private static String resolveProperty(Properties properties, String value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.startsWith("${") && value.endsWith("}") && properties != null) {
+            return normalizeOptionalVersion(properties.getProperty(value.substring(2, value.length() - 1)));
+        }
+        return value;
     }
 
     private static List<String> collectCompilerArgs(Model model) {
@@ -241,6 +391,27 @@ public final class MavenProjectInspector {
             }
         }
         return null;
+    }
+
+    private static String firstConsistentValue(List<String> values) {
+        var consistentValue = firstConsistentNullableValue(values);
+        return consistentValue == null ? "unknown" : consistentValue;
+    }
+
+    private static String firstConsistentNullableValue(List<String> values) {
+        String selected = null;
+        for (String value : values) {
+            var normalized = normalizeOptionalText(value);
+            if (normalized == null) {
+                continue;
+            }
+            if (selected == null) {
+                selected = normalized;
+            } else if (!selected.equals(normalized)) {
+                return null;
+            }
+        }
+        return selected;
     }
 
     private static boolean isCompilerPlugin(Plugin plugin) {

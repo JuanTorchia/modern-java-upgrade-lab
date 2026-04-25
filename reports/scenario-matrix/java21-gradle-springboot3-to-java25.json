@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.0",
+  "targetJavaVersion": 25,
+  "riskLevel": "LOW",
+  "riskScore": 15,
+  "riskReasons": ["Declared Java 21 targets Java 25"],
+  "buildReadiness": {
+    "buildWrapperPresent": false,
+    "ciProvider": null,
+    "ciEvidence": null,
+    "suggestedTestCommand": "gradle test"
+  },
+  "project": {
+    "path": "C:\\Users\\jstor\\develop\\modern-java-upgrade\\examples\\spring-boot-3-gradle-java-21",
+    "buildTool": "gradle",
+    "declaredJavaVersion": "21",
+    "springBootVersion": "3.3.5"
+  },
+  "dependencyBaselines": [
+    {
+      "category": "Build plugin",
+      "name": "org.springframework.boot",
+      "version": "3.3.5",
+      "evidence": "build.gradle.kts"
+    },
+    {
+      "category": "Build plugin",
+      "name": "io.spring.dependency-management",
+      "version": "1.1.6",
+      "evidence": "build.gradle.kts"
+    }
+  ],
+  "workItems": [
+    {
+      "id": "run-baseline-tests",
+      "category": "BUILD",
+      "title": "Run baseline tests in CI before migration changes",
+      "rationale": "A Java migration needs a known failing/passing baseline before changing runtime, framework, or build configuration.",
+      "command": "gradle test",
+      "priority": "P0",
+      "phase": "Baseline"
+    },
+    {
+      "id": "run-openrewrite-java-25",
+      "category": "AUTOMATION",
+      "title": "Run OpenRewrite Java 25 recipe in a branch",
+      "rationale": "OpenRewrite automation should be reviewable and separate from manual runtime changes.",
+      "command": "mvn -U org.openrewrite.maven:rewrite-maven-plugin:run -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava25",
+      "priority": "P2",
+      "phase": "Automation"
+    }
+  ],
+  "findings": [
+    {
+      "id": "java-21-to-25-baseline-review",
+      "category": "BASELINE",
+      "blockerCategory": "BASELINE",
+      "severity": "INFO",
+      "area": "Java baseline",
+      "title": "Java 21 to 25 migration should start with a build and test baseline",
+      "evidence": "Declared Java version is 21; target Java version is 25",
+      "recommendation": "Establish a Java 25 build and test baseline before enabling optional language, runtime, GC, JFR, or AOT changes.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "openrewrite-java-25",
+      "category": "AUTOMATION",
+      "blockerCategory": "AUTOMATION",
+      "severity": "INFO",
+      "area": "Migration automation",
+      "title": "OpenRewrite has a Java 25 migration recipe",
+      "evidence": "Target Java version is 25",
+      "recommendation": "Review and run the suggested OpenRewrite recipe in a branch before manual changes.",
+      "openRewriteRecipe": "org.openrewrite.java.migrate.UpgradeToJava25"
+    },
+    {
+      "id": "source-map-string-object-src-main-java-dev-modernjava-upgrade-example-gradlegreetingcontroller-java-11",
+      "category": "LANGUAGE",
+      "blockerCategory": "LANGUAGE_MODERNIZATION",
+      "severity": "INFO",
+      "area": "Language modernization",
+      "title": "Map-based response can be reviewed as an explicit DTO or record",
+      "evidence": "src\\main\\java\\dev\\modernjava\\upgrade\\example\\GradleGreetingController.java:11 contains `Map<String, Object> hello() {`",
+      "recommendation": "Review whether this loosely typed map represents a stable response shape. If it does, model it as a DTO now and consider a record when the target runtime supports it.",
+      "openRewriteRecipe": null
+    },
+    {
+      "id": "source-thread-local-src-main-java-dev-modernjava-upgrade-example-requestcontext-java-5",
+      "category": "CONCURRENCY",
+      "blockerCategory": "CONCURRENCY",
+      "severity": "INFO",
+      "area": "Concurrency modernization",
+      "title": "ThreadLocal usage should be reviewed for scoped values",
+      "evidence": "src\\main\\java\\dev\\modernjava\\upgrade\\example\\RequestContext.java:5 contains `private static final ThreadLocal<String> TENANT = new ThreadLocal<>();`",
+      "recommendation": "Review whether this context propagation can move toward scoped values on Java 25. Do not rewrite automatically; validate lifecycle, framework integration, and request boundaries first.",
+      "openRewriteRecipe": null
+    }
+  ],
+  "analysisMetadata": {
+    "analyzerVersion": "0.1.0-SNAPSHOT",
+    "generatedAt": "2026-04-25T02:18:19.093769500Z",
+    "gitCommit": "2ad9da582f0a89f8212893298bf176e9e1dde307",
+    "gitBranch": "master"
+  }
+}
